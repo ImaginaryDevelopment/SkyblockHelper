@@ -16,6 +16,7 @@ let parse x = Fable.Core.JS.JSON.parse(x)
 open SkyblockHelper
 
 type Model = {
+    Account: string
     ProfileNames: string list
     CurrentProfile: Profile
     ProfileName: string
@@ -31,6 +32,7 @@ type Msg =
     | ProfileCreate
     | ProfileSelected of string
     | PopulateMinions
+    | MinionChange of Resources.Resource * int
     | SaveProfile
 
 
@@ -42,8 +44,8 @@ let fetchProfiles ():Async<string list> = async{
     printfn "Fetched profiles, names: %A" profiles
     return profiles
     }
-
-let initialModel = { ProfileNames = List.empty; CurrentProfile = Profile.empty; ProfileName = System.String.Empty }
+let empty = System.String.Empty
+let initialModel = { Account = empty; ProfileNames = List.empty; CurrentProfile = Profile.empty; ProfileName = empty }
 let defaultMinions =
         SkyblockHelper.Gen.ResourceCases |> Seq.filter(snd>>Resources.Resource.IsMinionType) |> Seq.map(fun (_name,v) ->
             {Resource=v;Level=0}
@@ -62,6 +64,9 @@ let init () : Model * Cmd<Msg> =
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
     match msg with
+    | MinionChange(r,v) ->
+        let profile = m.CurrentProfile |> Profile.UpdateMinion r v
+        {m with CurrentProfile = profile} , Cmd.none
     | ProfileSelected n ->
         profileStore.TryFind n
         |> function
@@ -113,7 +118,6 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
 
     // | _ -> m, Cmd.none
 
-
 let safeComponents =
     let components =
         span [ ]
@@ -128,7 +132,6 @@ let safeComponents =
              a [ Href "https://elmish.github.io" ] [ str "Elmish" ]
              str ", "
              a [ Href "https://fulma.github.io/Fulma" ] [ str "Fulma" ]
-
            ]
 
     span [ ]
@@ -147,34 +150,44 @@ let profileDropdown labelText (selectedItem:string) items onChange buttonState =
 let profileList names txt onTextChange onSelectChange onNewClick = 
     printfn "Using profiles: %A" names
     Text.div [] [
-        Input.text [
-            Input.DefaultValue txt
-            Input.OnChange onTextChange
-        ]
+        BFulma.horizontalInput "Profile Name" 
+            <| Input.text [
+                Input.DefaultValue txt
+                Input.OnChange onTextChange
+            ]
         profileDropdown "Profiles" txt names onSelectChange onNewClick
     ]
 
-let minion (x:Minion)=
+let profileLink account profileOpt =
+    let link x = sprintf "https://sky.lea.moe/stats/%s" x
+    if String.isValueString profileOpt then
+        sprintf "%s/%s" account profileOpt
+    else
+        account
+    |> fun x ->
+        a [link x |> Href]
+
+let minion (x:Minion) onChange =
     try
-        let rere = x |> stringify |> parse |> unbox 
-        printfn "made rere"
-        match rere with
+        match x with
         |{Resource=t;Level=lvl} ->
-            printfn "rendering a minion"
             let minput = Input.number [
                 Input.DefaultValue <| string lvl
                 Input.Props [ Min "0"; Max "20"]
+                Input.OnChange onChange
                 ]
+            let tip = t.GetLabel()
+            let text = t.GetMinion() |> Option.defaultValue tip
             // BFulma.horizontalInput (string t) minput
             tr [ ][
                 td [] [minput]
-                td [] [div [] [string t |> str]]
+                td [] [div [Title tip] [ str text ]]
             ]
     with ex ->
         eprintfn "Error rendering minion %s" <| stringify x
         div [] [ stringify ex |> sprintf "Error:%s" |> str ]
 
-let minionList minions =
+let minionList minions onChange =
     printfn "Rendering a minion list"
     div [ Class "table-container"][
         table [] [
@@ -185,10 +198,9 @@ let minionList minions =
                 ]
             ]
             tbody [] [
-                yield! minions |> Array.map minion
+                yield! minions |> Array.map (fun mn -> minion mn (fun ev -> onChange ev mn.Resource))
             ]
         ]
-
     ]
 
 let getEvValue:Browser.Types.Event -> string =
@@ -197,6 +209,7 @@ let getEvValue:Browser.Types.Event -> string =
         let result = e.Value
         printfn "EvTarget is %A" result
         result
+
 let view (model : Model) (dispatch : Msg -> unit) =
     div []
         [ Navbar.navbar [ Navbar.Color IsPrimary ]
@@ -205,7 +218,12 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     [ str "SAFE Template" ] ] ]
 
           Container.container [] [
-              profileList model.ProfileNames model.ProfileName
+
+              if String.isValueString model.Account then
+                  yield profileLink model.Account model.ProfileName [
+                    str "Profile"
+                  ]
+              yield profileList model.ProfileNames model.ProfileName
                 (getEvValue >> Msg.NewProfileNameChange >> dispatch)
                 (Msg.ProfileSelected >> dispatch)
                 (BFulma.BtnEnabled (fun _ -> Msg.CreateProfile |> dispatch))
@@ -214,7 +232,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
           Container.container [] [
               div [] [
                   if model.CurrentProfile.Minions.Length > 0 then
-                      yield minionList model.CurrentProfile.Minions
+                      yield minionList model.CurrentProfile.Minions (getEvValue>>(fun v r -> dispatch (Msg.MinionChange(r,int v))))
                   elif model.CurrentProfile.Minions.Length < 1 then
                       yield BFulma.button "Initialize" false (BFulma.BtnEnabled (fun _ -> dispatch Msg.PopulateMinions))
               ]

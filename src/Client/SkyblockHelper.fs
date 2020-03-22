@@ -55,4 +55,6 @@ type Minion = {Resource: Resource; Level:int}
 // open Minions
 type Profile = {Minions:Minion [];CombatLevel:int;ForageLevel:int;AlchemyLevel:int} with
     static member empty = {Minions=Array.empty;CombatLevel=0;ForageLevel=0;AlchemyLevel=0}
+    static member UpdateMinion r v model =
+        {model with Minions = model.Minions |> Array.map(function | {Resource=r'} as x when r' = r -> {x with Level=v} | x -> x )}
 

@@ -12,13 +12,24 @@ module Resources =
         | EnchantedBlock
 
     type Resource =
-        | Wheat 
+        | Wheat
         | Seeds
         | RawBeef
-        | Melon
+        | Watermelon
         | Pumpkin
         | Iron
         | Custom of string
+        with
+            member x.GetLabel () =
+                match x with
+                |Custom s -> s
+                | _ -> string x
+            member x.GetMinion () =
+                match x with
+                |Custom s -> Some s
+                |Seeds -> None
+                |RawBeef -> Some "Cow"
+                | x -> x.GetLabel() |> Some
 
 open Resources
 

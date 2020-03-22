@@ -58,8 +58,14 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
     match msg with
     | ProfileLoad (Ok names) ->
         {m with ProfileNames = names}, Cmd.none
-    // | PopulateMinions ->
-        
+    | PopulateMinions ->
+        let mns = SkyblockHelper.Gen.ResourceCases |> Seq.map(fun (_name,v) ->
+            Minions.Minion (v,0)
+        )
+        let cp ={m.CurrentProfile with Minions = List.ofSeq mns}
+        let next = {m with CurrentProfile = cp}
+        next, Cmd.none
+
 
     // | _ -> m, Cmd.none
 
@@ -92,28 +98,6 @@ let button txt onClick =
           Button.Color IsPrimary
           Button.OnClick onClick ]
         [ str txt ]
-let dropdownSample =
-    Dropdown.dropdown [ Dropdown.IsHoverable ]
-        [ Text.div [CustomClass "dropdown-trigger"]
-            [ Button.button [ ]
-                [ span [ ]
-                    [ str "Dropdown" ]
-                  Icon.icon [ Icon.Size IsSmall ]
-                    [ Fa.i [ Fa.Solid.AngleDown ]
-                        [ ] ] ] ]
-          Dropdown.menu [ ]
-            [ Dropdown.content [ ]
-                [ Dropdown.Item.a [ ]
-                    [ str "Item n°1" ]
-                  Dropdown.Item.a [ ]
-                    [ str "Item n°2" ]
-                  Dropdown.Item.a [ Dropdown.Item.IsActive true ]
-                    [ str "Item n°3" ]
-                  Dropdown.Item.a [ ]
-                    [ str "Item n°4" ]
-                  Dropdown.divider [ ]
-                  Dropdown.Item.a [ ]
-                    [ str "Item n°5" ] ] ] ]
 
 let dropdown labelText (selectedItem:string) items onChange onNewClick =
         Dropdown.dropdown [
@@ -144,9 +128,27 @@ let profileList names txt onTextChange onSelectChange onNewClick =
 let minion =
     function
     |SkyblockHelper.Minions.Minion (t,lvl) ->
-        div [][string t |> str; string lvl |> str]
+        tr []
+            [
+                td [] []
+                td [] [str (t.GetLabel())]
+            ]
 let minionList minions =
-    minions |> List.map minion
+    div [ Class "table-container"][
+        table [] [
+            thead [] [
+                tr [] [
+                    th [] [ str "Level"]
+                    th [] [ str "Name"]
+
+                ]
+            ]
+            tbody [] [
+                yield! minions |> List.map minion
+            ]
+        ]
+
+    ]
 
 let getEvValue:Browser.Types.Event -> string =
     fun e -> e.target?Value
@@ -158,19 +160,18 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     [ str "SAFE Template" ] ] ]
 
           Container.container [] [
-            //   dropdownSample
               profileList model.ProfileNames model.ProfileName
                 (getEvValue >> Msg.NewProfileNameChange >> dispatch)
                 (getEvValue >> Msg.ProfileSelected >> dispatch)
                 (fun _ -> Msg.CreateProfile |> dispatch)
           ]
+
           Container.container [] [
-              
               div [] [str "hello"]
               Level.level [] [
                   yield Level.left [][Level.heading [][str "Minions"]]
                   if model.CurrentProfile.Minions.Length > 0 then
-                      yield Level.item [] (minionList model.CurrentProfile.Minions)
+                      yield Level.item [] [minionList model.CurrentProfile.Minions]
                   elif model.ProfileNames.Length < 1 then
                       yield Level.item [] [button "Initialize" (fun _ -> dispatch Msg.PopulateMinions)]
 

@@ -21,7 +21,7 @@ let ResourceCases =
     "Wheat", Resources.Resource.Wheat
     "Seeds", Resources.Resource.Seeds
     "RawBeef", Resources.Resource.RawBeef
-    "Melon", Resources.Resource.Melon
+    "Watermelon", Resources.Resource.Watermelon
     "Pumpkin", Resources.Resource.Pumpkin
     "Iron", Resources.Resource.Iron
   ]

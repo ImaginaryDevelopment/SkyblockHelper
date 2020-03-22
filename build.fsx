@@ -81,13 +81,17 @@ Target.create "Build" (fun _ ->
         (Path.combine clientPath "Version.fs")
     runTool yarnTool "webpack-cli -p" __SOURCE_DIRECTORY__
 )
-
+let clientAsync = async {
+        runTool yarnTool "webpack-dev-server" __SOURCE_DIRECTORY__
+}
+Target.create "RunClient" (fun _ ->
+    clientAsync
+    |> Async.RunSynchronously
+    |> ignore
+)
 Target.create "Run" (fun _ ->
     let server = async {
         runDotNet "watch run" serverPath
-    }
-    let client = async {
-        runTool yarnTool "webpack-dev-server" __SOURCE_DIRECTORY__
     }
     let browser = async {
         do! Async.Sleep 5000
@@ -99,7 +103,7 @@ Target.create "Run" (fun _ ->
 
     let tasks =
         [ if not safeClientOnly then yield server
-          yield client
+          yield clientAsync
           if not vsCodeSession then yield browser ]
 
     tasks

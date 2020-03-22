@@ -23,5 +23,11 @@ let ResourceCases =
     "RawBeef", Resources.Resource.RawBeef
     "Watermelon", Resources.Resource.Watermelon
     "Pumpkin", Resources.Resource.Pumpkin
+    "Cobblestone", Resources.Resource.Cobblestone
+    "Coal", Resources.Resource.Coal
     "Iron", Resources.Resource.Iron
+    "Gold", Resources.Resource.Gold
+    "Lapis", Resources.Resource.Lapis
+    "Emerald", Resources.Resource.Emerald
+    "Diamond", Resources.Resource.Diamond
   ]

@@ -1,5 +1,9 @@
 namespace Shared
 
-type Counter = { Value : int }
-
+module String =
+    let isValueString =
+        function
+        | null | "" -> false
+        | x when System.String.IsNullOrWhiteSpace x -> false
+        | _ -> true
 

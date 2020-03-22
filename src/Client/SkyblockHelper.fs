@@ -17,27 +17,42 @@ module Resources =
         | RawBeef
         | Watermelon
         | Pumpkin
+        | Cobblestone
+        | Coal
         | Iron
+        | Gold
+        | Lapis
+        | Emerald
+        | Diamond
         | Custom of string
         with
             member x.GetLabel () =
                 match x with
-                |Custom s -> s
+                | Custom s -> s
                 | _ -> string x
+            static member IsMinionType x =
+                match x with 
+                | Custom _ -> true
+                | Seeds -> false
+                | RawBeef -> true
+                | _ -> true
+
             member x.GetMinion () =
                 match x with
-                |Custom s -> Some s
-                |Seeds -> None
-                |RawBeef -> Some "Cow"
+                | Custom s -> Some s
+                | Seeds -> None
+                | RawBeef -> Some "Cow"
                 | x -> x.GetLabel() |> Some
 
 open Resources
+// open Fable.Core
+type Minion = {Resource: Resource; Level:int}
+// module Minions =
+//     [<Erase>] // maybe this would work?
+//     type Minion =
+//         | Minion of Resource * level:int
 
-module Minions =
-    type Minion =
-        |Minion of Resource * level:int
-
-open Minions
-type Profile = {Minions:Minion list;CombatLevel:int;ForageLevel:int;AlchemyLevel:int} with
-    static member empty = {Minions=List.empty;CombatLevel=0;ForageLevel=0;AlchemyLevel=0}
+// open Minions
+type Profile = {Minions:Minion [];CombatLevel:int;ForageLevel:int;AlchemyLevel:int} with
+    static member empty = {Minions=Array.empty;CombatLevel=0;ForageLevel=0;AlchemyLevel=0}
 

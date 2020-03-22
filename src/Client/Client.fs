@@ -7,12 +7,12 @@ open Fable.Import
 open Fable.React.Props
 open Fable.FontAwesome
 open Fable.Core.JsInterop
-open Fetch.Types
-open Thoth.Fetch
+// open Fetch.Types
+// open Thoth.Fetch
 open Fulma
-open Thoth.Json
+// open Thoth.Json
 
-open Shared
+// open Shared
 
 open SkyblockHelper
 
@@ -58,6 +58,8 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
     match msg with
     | ProfileLoad (Ok names) ->
         {m with ProfileNames = names}, Cmd.none
+    // | PopulateMinions ->
+        
 
     // | _ -> m, Cmd.none
 
@@ -186,7 +188,6 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     [ safeComponents ] ] ]
 
 #if DEBUG
-open Elmish.Debug
 open Elmish.HMR
 #endif
 
@@ -195,7 +196,7 @@ Program.mkProgram init update view
 |> Program.withConsoleTrace
 #endif
 |> Program.withReactBatched "elmish-app"
-#if DEBUG
-|> Program.withDebugger
-#endif
+// #if DEBUG
+// |> Program.withDebugger
+// #endif
 |> Program.run

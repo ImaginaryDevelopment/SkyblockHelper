@@ -57,7 +57,6 @@ let openBrowser url =
     |> Proc.run
     |> ignore
 
-
 Target.create "Clean" (fun _ ->
     [ deployDir
       clientDeployPath ]

@@ -9,7 +9,11 @@ open Fable.React
 open Fable.React.Props
 open Fulma
 
+open CodeHelpers.FableHelpers
 open SkyblockHelper
+open Shared
+open Shared.Helpers
+open Components.SharedComponents
 
 
 type Msg =
@@ -34,6 +38,12 @@ let fetchProfiles ():Async<string list> = async{
     return profiles
     }
 let empty = System.String.Empty
+type Model = {
+    Account: string
+    SavedNames: string list
+    CurrentProfile : Profile
+    ProfileName:string
+}
 let initialModel = { Account = empty; SavedNames = List.empty; CurrentProfile = Profile.empty; ProfileName = empty }
 let defaultMinions =
         SkyblockHelper.Gen.ResourceCases |> Seq.filter(snd>>Resources.Resource.IsMinionType) |> Seq.map(fun (_name,v) ->
@@ -124,20 +134,70 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
             printfn "ProfileName was %s and minions were %i" m.ProfileName m.CurrentProfile.Minions.Length
             m, Cmd.none // todo? no error message or anything
 
-let profileLink account profileOpt =
+let profileDropdown labelText (selectedItem:string) items onChange buttonState =
+    printfn "rerendering drop down"
+    div [] [
+        BFulma.dropdown labelText selectedItem items (fun e -> printfn "selected firing"; onChange e)
+        BFulma.button "New Profile" false buttonState 
+    ]
+
+let profileList names txt onTextChange = 
+    printfn "Using profiles: %A" names
+    Text.div [] [
+        BFulma.horizontalInput "Profile Name" 
+            <| Input.text [
+                Input.DefaultValue txt
+                Input.OnChange onTextChange
+            ]
+    ]
+
+
+let minion (x:Minion) onChange =
+    try
+        match x with
+        |{Resource=t;Level=lvl} ->
+            let minput = Input.number [
+                Input.DefaultValue <| string lvl
+                Input.Props [ Min "0"; Max "20"]
+                Input.OnChange onChange
+                ]
+            let tip = t.GetLabel()
+            let text = t.GetMinion() |> Option.defaultValue tip
+            // BFulma.horizontalInput (string t) minput
+            tr [ ][
+                td [] [minput]
+                td [] [div [Title tip] [ str text ]]
+            ]
+    with ex ->
+        eprintfn "Error rendering minion %s" <| stringify x
+        div [] [ stringify ex |> sprintf "Error:%s" |> str ]
+
+let minionList minions onChange =
+    printfn "Rendering a minion list"
+    div [ Class "table-container"][
+        table [] [
+            thead [] [
+                tr [] [
+                    th [] [ str "Level"]
+                    th [] [ str "Name"]
+                ]
+            ]
+            tbody [] [
+                yield! minions |> Array.map (fun mn -> minion mn (fun ev -> onChange ev mn.Resource))
+            ]
+        ]
+    ]
+let profileLink account profileOpt children =
+
     let link x = sprintf "https://sky.lea.moe/stats/%s" x
     if String.isValueString profileOpt then
         sprintf "%s/%s" account profileOpt
     else
         account
     |> fun x ->
-        a [link x |> Href; Target "_blank"]
+        a [link x |> Href; Target "_blank"] children
 let view (model : Model) (dispatch : Msg -> unit) =
-    div []
-        [ Navbar.navbar [ Navbar.Color IsPrimary ]
-            [ Navbar.Item.div [ ]
-                [ Heading.h2 [ ]
-                    [ str "SAFE Template" ] ] ]
+    div [] [
 
           Container.container [] [
 
@@ -163,7 +223,4 @@ let view (model : Model) (dispatch : Msg -> unit) =
               ]
               BFulma.button "Save" true (BFulma.BtnEnabled (fun _ -> dispatch Msg.SaveProfile))
           ]
-
-          Footer.footer [ ]
-                [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
-                    [ safeComponents ] ] ]
+    ]

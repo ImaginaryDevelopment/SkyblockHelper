@@ -279,4 +279,10 @@ let FoldMaster (props:{| title:string;isFolded:bool;onToggle:bool -> unit |}) =
 // }
 // export let FAIcon = props =>(
 //   <span className={'icon ' + props.addedClasses}><i className={'fa '+props.icon}></i></span>);
-  
+
+let getEvValue:Browser.Types.Event -> string =
+    fun e ->
+        Browser.Dom.console.log(e.currentTarget)
+        let result = e.Value
+        printfn "EvTarget is %A" result
+        result

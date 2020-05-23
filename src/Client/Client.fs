@@ -10,6 +10,7 @@ open Fable.Core.JsInterop
 open Fulma
 
 open Shared
+open Shared.Helpers
 
 let stringify x = Fable.Core.JS.JSON.stringify x
 let parse x = Fable.Core.JS.JSON.parse(x)
@@ -17,7 +18,7 @@ open SkyblockHelper
 
 type Model = {
     Account: string
-    ProfileNames: string list
+    SavedNames: string list
     CurrentProfile: Profile
     ProfileName: string
     }
@@ -25,6 +26,7 @@ type Model = {
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
 type Msg =
+    | AccountChange of string
     | NewProfileNameChange of string
     | LoadProfileNames
     | ProfileNamesLoad of Result<string list,exn>
@@ -45,7 +47,7 @@ let fetchProfiles ():Async<string list> = async{
     return profiles
     }
 let empty = System.String.Empty
-let initialModel = { Account = empty; ProfileNames = List.empty; CurrentProfile = Profile.empty; ProfileName = empty }
+let initialModel = { Account = empty; SavedNames = List.empty; CurrentProfile = Profile.empty; ProfileName = empty }
 let defaultMinions =
         SkyblockHelper.Gen.ResourceCases |> Seq.filter(snd>>Resources.Resource.IsMinionType) |> Seq.map(fun (_name,v) ->
             {Resource=v;Level=0}
@@ -64,6 +66,8 @@ let init () : Model * Cmd<Msg> =
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
     match msg with
+    | AccountChange x ->
+        {m with Account = x}, Cmd.none
     | MinionChange(r,v) ->
         let profile = m.CurrentProfile |> Profile.UpdateMinion r v
         {m with CurrentProfile = profile} , Cmd.none
@@ -79,9 +83,9 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
                 m, Cmd.none
 
     | CreateProfile ->
-        printfn "CreateProfile old names:%A" m.ProfileNames
-        let pn = if m.ProfileNames |> Seq.contains m.ProfileName then "" else m.ProfileName
-        { initialModel with ProfileName = pn; ProfileNames = m.ProfileNames}, Cmd.none
+        printfn "CreateProfile old names:%A" m.SavedNames
+        let pn = if m.SavedNames |> Seq.contains m.ProfileName then "" else m.ProfileName
+        { initialModel with ProfileName = pn; SavedNames = m.SavedNames }, Cmd.none
     | NewProfileNameChange n ->
         if isNull n then
             eprintfn "Profile name change passed null"
@@ -90,28 +94,45 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
             {m with ProfileName = n}, Cmd.none
     | ProfileNamesLoad (Ok names) ->
         printfn "Loaded, setting names: %A" names
-        {m with ProfileNames = names}, Cmd.none
+        {m with SavedNames = names}, Cmd.none
     | PopulateMinions ->
         let cp ={m.CurrentProfile with Minions = Array.ofSeq defaultMinions}
         let next = {m with CurrentProfile = cp}
         next, Cmd.none
     | SaveProfile ->
-        if m.ProfileName |> String.isValueString && m.CurrentProfile.Minions.Length > 0 then
-            profileStore.Save (m.ProfileName, m.CurrentProfile)
-            |> function
-                | Ok () -> printfn "Saved"
-                | Error exn -> printfn "Exception %A" exn
-            |> ignore // todo? no error message or success indication
-            if m.ProfileNames |> Seq.contains m.ProfileName |> not then
-                let profileNames = m.ProfileName::m.ProfileNames
-                printfn "profilenames will be %A" profileNames
-                profileNameStore.Save profileNames
+        printfn "Saving profile"
+        if m.CurrentProfile.Minions.Length > 0 then
+            match m.Account,m.ProfileName with
+            | ValueString _, ValueString _ ->
+                sprintf "%s/%s" m.Account m.ProfileName
+                |> Some
+            | ValueString _,_ ->
+                m.Account
+                |> Some
+            | _, ValueString _ ->
+                // we can't let account and profiles both have the same lookup
+                sprintf "/%s" m.ProfileName
+                |> Some
+            | _ ->
+                None
+            |> Option.defaultValue "default"
+            |> fun storageName ->
+                BrowserStorage.toGlobal "profileStore" profileStore
+                profileStore.Save (storageName, m.CurrentProfile)
                 |> function
                     | Ok () -> printfn "Saved"
                     | Error exn -> printfn "Exception %A" exn
-                {m with ProfileNames = profileNames }, Cmd.none
+                |> ignore // todo? no error message or success indication
+                // no storage name found, no account or profile, or either
+            if m.SavedNames |> Seq.contains m.ProfileName |> not then
+                let saved = m.ProfileName::m.SavedNames
+                printfn "savedNames will be %A" saved
+                profileNameStore.Save saved
+                |> function
+                    | Ok () -> printfn "Saved"
+                    | Error exn -> printfn "Exception %A" exn
+                {m with SavedNames = saved }, Cmd.none
             else m,Cmd.none
-
         else
             printfn "ProfileName was %s and minions were %i" m.ProfileName m.CurrentProfile.Minions.Length
             m, Cmd.none // todo? no error message or anything
@@ -147,7 +168,7 @@ let profileDropdown labelText (selectedItem:string) items onChange buttonState =
         BFulma.button "New Profile" false buttonState 
     ]
 
-let profileList names txt onTextChange onSelectChange onNewClick = 
+let profileList names txt onTextChange = 
     printfn "Using profiles: %A" names
     Text.div [] [
         BFulma.horizontalInput "Profile Name" 
@@ -155,7 +176,6 @@ let profileList names txt onTextChange onSelectChange onNewClick =
                 Input.DefaultValue txt
                 Input.OnChange onTextChange
             ]
-        profileDropdown "Profiles" txt names onSelectChange onNewClick
     ]
 
 let profileLink account profileOpt =
@@ -165,7 +185,7 @@ let profileLink account profileOpt =
     else
         account
     |> fun x ->
-        a [link x |> Href]
+        a [link x |> Href; Target "_blank"]
 
 let minion (x:Minion) onChange =
     try
@@ -219,14 +239,17 @@ let view (model : Model) (dispatch : Msg -> unit) =
 
           Container.container [] [
 
+              yield profileDropdown "Load Saved..." model.ProfileName model.SavedNames
+                  (Msg.ProfileSelected >> dispatch)
+                  (BFulma.BtnEnabled (fun _ -> Msg.CreateProfile |> dispatch))
+              yield BFulma.horizontalInput "Account" <|
+                    Input.text [Input.DefaultValue model.Account; Input.OnChange (getEvValue>> Msg.AccountChange >> dispatch)]
+              yield profileList model.SavedNames model.ProfileName
+                (getEvValue >> Msg.NewProfileNameChange >> dispatch)
               if String.isValueString model.Account then
                   yield profileLink model.Account model.ProfileName [
                     str "Profile"
                   ]
-              yield profileList model.ProfileNames model.ProfileName
-                (getEvValue >> Msg.NewProfileNameChange >> dispatch)
-                (Msg.ProfileSelected >> dispatch)
-                (BFulma.BtnEnabled (fun _ -> Msg.CreateProfile |> dispatch))
           ]
 
           Container.container [] [

@@ -6,6 +6,7 @@ open Fable.Core.JsInterop
 
 // for debugging
 let toGlobal (name:string) value =
+    printfn "Adding global %s" name
     Browser.Dom.self?(name) <- value
 
 module Internal =
@@ -24,14 +25,18 @@ module Internal =
                 result
             )
 
-    let trySave (key:string) value: Result<unit,string>  =
+    let trySave (key:string) value : Result<unit,string>  =
+        printfn "trying to save"
         try
             // let pojo = Fable.Core.JsInterop.toPlainJsObj value
             let serial = json.stringify(value)
             // let serial = json.stringify pojo
+            printfn "Saving to key %s" key
+            System.Diagnostics.Debugger.Break()
 
             localStorage.setItem(key,serial)
-            |> Ok
+            printfn "Saved -> %s" serial
+            Ok ()
         with ex ->
             toGlobal "self" Browser.Dom.self
             Error(ex.Message)
@@ -49,6 +54,8 @@ let createStorage<'t when 't : equality > name =
 // perf? -> in the interest of not writing a singleton or enforcing one, we'll fetch from localstorage on each operation
 type LookupStorage<'tvalue when 'tvalue : equality >(key) =
     let storage : StorageAccess<(string*'tvalue)[]> = createStorage key
+    do
+        toGlobal (sprintf "storage_%s" key) storage
 
     member __.Get():Map<string,'tvalue>=
         storage.Get()

@@ -14,7 +14,6 @@ open Fake.IO
 
 Target.initEnvironment ()
 
-let serverPath = Path.getFullName "./src/Server"
 let clientPath = Path.getFullName "./src/Client"
 let clientDeployPath = Path.combine clientPath "deploy"
 let deployDir = Path.getFullName "./deploy"
@@ -57,6 +56,7 @@ let openBrowser url =
     |> Proc.run
     |> ignore
 
+
 Target.create "Clean" (fun _ ->
     [ deployDir
       clientDeployPath ]
@@ -72,25 +72,12 @@ Target.create "InstallClient" (fun _ ->
 )
 
 Target.create "Build" (fun _ ->
-    runDotNet "build" serverPath
-    Shell.regexReplaceInFileWithEncoding
-        "let app = \".+\""
-       ("let app = \"" + release.NugetVersion + "\"")
-        System.Text.Encoding.UTF8
-        (Path.combine clientPath "Version.fs")
     runTool yarnTool "webpack-cli -p" __SOURCE_DIRECTORY__
 )
-let clientAsync = async {
-        runTool yarnTool "webpack-dev-server" __SOURCE_DIRECTORY__
-}
-Target.create "RunClient" (fun _ ->
-    clientAsync
-    |> Async.RunSynchronously
-    |> ignore
-)
+
 Target.create "Run" (fun _ ->
-    let server = async {
-        runDotNet "watch run" serverPath
+    let client = async {
+        runTool yarnTool "webpack-dev-server" __SOURCE_DIRECTORY__
     }
     let browser = async {
         do! Async.Sleep 5000
@@ -98,11 +85,9 @@ Target.create "Run" (fun _ ->
     }
 
     let vsCodeSession = Environment.hasEnvironVar "vsCodeSession"
-    let safeClientOnly = Environment.hasEnvironVar "safeClientOnly"
 
     let tasks =
-        [ if not safeClientOnly then yield server
-          yield clientAsync
+        [ yield client
           if not vsCodeSession then yield browser ]
 
     tasks
@@ -111,16 +96,22 @@ Target.create "Run" (fun _ ->
     |> ignore
 )
 
-
-
-
-
+// yarn webpack -p -o ./docs/bundle.js
+// dotnet fake build -t bundle -s
+Target.create "Bundle" (fun _ ->
+    runTool yarnTool "webpack-cli -o ./docs/bundle.js -p" __SOURCE_DIRECTORY__
+    printfn "Made bundle?"
+)
 
 open Fake.Core.TargetOperators
 
 "Clean"
     ==> "InstallClient"
     ==> "Build"
+
+"Clean"
+    ==> "InstallClient"
+    ==> "Bundle"
 
 
 "Clean"

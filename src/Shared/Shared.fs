@@ -6,4 +6,9 @@ module String =
         | null | "" -> false
         | x when System.String.IsNullOrWhiteSpace x -> false
         | _ -> true
+module Helpers =
+    let (|ValueString|_|) =
+        function
+        | x when String.isValueString x -> Some x
+        | _ -> None
 

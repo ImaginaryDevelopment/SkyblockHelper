@@ -30,4 +30,7 @@ let ResourceCases =
     "Lapis", Resources.Resource.Lapis
     "Emerald", Resources.Resource.Emerald
     "Diamond", Resources.Resource.Diamond
+    "Obsidian", Resources.Resource.Obsidian
+    "Glowstone", Resources.Resource.Glowstone
+    "Gravel", Resources.Resource.Gravel
   ]

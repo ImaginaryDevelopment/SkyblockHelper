@@ -12,13 +12,18 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
 var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
+
+// If we're running the webpack-dev-server, assume we're in development mode
+var isProduction = !process.argv.find(v => v.indexOf('webpack-dev-server') !== -1);
+console.log('Bundling for ' + (isProduction ? 'production' : 'development') + '...');
+
 var CONFIG = {
     // The tags to include the generated JS and CSS will be automatically injected in the HTML template
     // See https://github.com/jantimon/html-webpack-plugin
     indexHtmlTemplate: './src/Client/index.html',
     fsharpEntry: './src/Client/Client.fsproj',
     cssEntry: './src/Client/style.scss',
-    outputDir: './src/Client/deploy',
+    outputDir: isProduction ? './docs' : './src/Client/deploy',
     assetsDir: './src/Client/public',
     devServerPort: 8080,
     // When using webpack-dev-server, you may need to redirect some calls
@@ -44,16 +49,13 @@ var CONFIG = {
                 // This adds polyfills when needed. Requires core-js dependency.
                 // See https://babeljs.io/docs/en/babel-preset-env#usebuiltins
                 // Note that you still need to add custom polyfills if necessary (e.g. whatwg-fetch)
-                useBuiltIns: 'usage',
-                corejs: 3
+                // useBuiltIns: 'usage',
+                // corejs: 3
             }]
         ],
+        plugins: ['@babel/transform-runtime']
     }
 }
-
-// If we're running the webpack-dev-server, assume we're in development mode
-var isProduction = !process.argv.find(v => v.indexOf('webpack-dev-server') !== -1);
-console.log('Bundling for ' + (isProduction ? 'production' : 'development') + '...');
 
 // The HtmlWebpackPlugin allows us to use a template for the index.html page
 // and automatically injects <script> or <link> tags for generated bundles.
@@ -79,7 +81,8 @@ module.exports = {
     // to prevent browser caching if code changes
     output: {
         path: resolve(CONFIG.outputDir),
-        filename: isProduction ? '[name].[hash].js' : '[name].js'
+        filename: './js/bundle.js'
+        // filename: isProduction ? '[name].[hash].js' : '[name].js'
     },
     mode: isProduction ? 'production' : 'development',
     devtool: isProduction ? 'source-map' : 'eval-source-map',
@@ -158,7 +161,11 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)(\?.*)?$/,
-                use: ['file-loader']
+                loader: 'file-loader',
+                options: {
+                    name: '[path][name].[ext]'
+                }
+
             }
         ]
     }

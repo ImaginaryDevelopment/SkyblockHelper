@@ -8,9 +8,12 @@
     <None Include="style.scss" />
     <Compile Include="../Shared/Shared.fs" />
     <Compile Include="Version.fs" />
-    <Compile Include="BrowserStorage.fs" />
-    <Compile Include="BFulma.fs" />
     <Compile Include="SkyblockHelper.fs" />
+    <Compile Include="CodeHelpers/FableHelpers.fs" />
+    <Compile Include="CodeHelpers/BrowserStorage.fs" />
+    <Compile Include="UIHelpers/BFulma.fs" />
+    <Compile Include="Components/SharedComponents.fs" />
+    <Compile Include="Components/ProfileMgmt.fs" />
     <Compile Include="Generated.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>

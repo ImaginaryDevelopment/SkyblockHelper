@@ -1,6 +1,8 @@
 #r "paket: groupref build //"
 #load "./.fake/build.fsx/intellisense.fsx"
 
+#load "./src/Shared/Shared.fs"
+
 #if !FAKE
 #r "netstandard"
 #r "Facades/netstandard" // https://github.com/ionide/ionide-vscode-fsharp/issues/839#issuecomment-396296095
@@ -11,11 +13,14 @@ open System
 open Fake.Core
 open Fake.DotNet
 open Fake.IO
+open Shared
+open Shared.Helpers
 
 Target.initEnvironment ()
 
 let clientPath = Path.getFullName "./src/Client"
 let clientDeployPath = Path.combine clientPath "deploy"
+let bundlePath = Path.combine __SOURCE_DIRECTORY__ "docs"
 let deployDir = Path.getFullName "./deploy"
 
 let release = ReleaseNotes.load "RELEASE_NOTES.md"
@@ -62,6 +67,12 @@ Target.create "Clean" (fun _ ->
       clientDeployPath ]
     |> Shell.cleanDirs
 )
+Target.create "CleanBundle" (fun _ ->
+    [
+        bundlePath
+    ]
+    |> Shell.cleanDirs
+)
 
 Target.create "InstallClient" (fun _ ->
     printfn "Node version:"
@@ -99,7 +110,12 @@ Target.create "Run" (fun _ ->
 // yarn webpack -p -o ./docs/bundle.js
 // dotnet fake build -t bundle -s
 Target.create "Bundle" (fun _ ->
-    runTool yarnTool "webpack-cli -o ./docs/bundle.js -p" __SOURCE_DIRECTORY__
+    // this doesn't depend on the variable above
+    // let outputJsPath = bundlePath |> String.after __SOURCE_DIRECTORY__ |> (+) "." |> flip Path.combine "bundle.js" // .\docs\bundl.js
+    // printfn "Output path will be: %s" outputJsPath
+    // let args = sprintf "webpack-cli -o \"%s\" -p" outputJsPath
+    let args = sprintf "webpack-cli -p"
+    runTool yarnTool args __SOURCE_DIRECTORY__
     printfn "Made bundle?"
 )
 
@@ -107,7 +123,7 @@ open Fake.Core.TargetOperators
 
 "Clean"
     ==> "InstallClient"
-    ==> "Build"
+    ?=> "Build"
 
 "Clean"
     ==> "InstallClient"

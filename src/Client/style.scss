@@ -15,3 +15,29 @@ $family-primary: 'Open Sans';
 // Bulma
 @import "~bulma/bulma";
 
+div.tabs li.active{
+    text-decoration: underline;
+    border-bottom: 1px solid black;
+
+}
+.strikethrough{
+    text-decoration: line-through;
+}
+.star:after{
+    content: '*';
+    color: blue;
+}
+.text-vcenter{
+    vertical-align: center;
+}
+.bd-callout{
+    background-color: #00d1b2;
+}
+.bd-outline{
+    border: #00d1b2 1px outset;
+}
+
+.m-left{
+    margin-left: 1em;
+}
+

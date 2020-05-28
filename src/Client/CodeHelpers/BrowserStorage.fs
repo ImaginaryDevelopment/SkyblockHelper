@@ -3,11 +3,7 @@ open Fable.Import
 open Browser.Types
 open Fable.Core.Util
 open Fable.Core.JsInterop
-
-// for debugging
-let toGlobal (name:string) value =
-    printfn "Adding global %s" name
-    Browser.Dom.self?(name) <- value
+open CodeHelpers.FableHelpers
 
 module Internal =
     let private localStorage = Browser.Dom.self.localStorage

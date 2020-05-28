@@ -5,6 +5,9 @@ open Fable.React
 open Fable.React.Props
 open Fulma
 
+open Shared
+
+type Children = ReactElement seq
 // https://bulma.io/documentation/modifiers/syntax/
 // type SizeClass = 'is-large' | 'is-small';
 type SizeClass =
@@ -15,7 +18,27 @@ let getSizeText =
     |Small -> "is-small"
     |Large -> "is-large"
 
-// type NumberInputProps
+type NumberInputProps = {
+    Name:string
+    OnChange: NameValue -> unit
+    Placeholder: string option
+    Value: decimal option
+}
+open CodeHelpers.FableHelpers
+
+let NumberInput (props:NumberInputProps) =
+    input [ 
+        yield Class "input"
+        yield OnChange (fun x -> {Name= getName x;Value= getValue x} |> props.OnChange)
+        match props.Placeholder with
+        | Some x ->
+            yield Placeholder x
+        | None -> ()
+        match props.Value with
+        | Some x ->
+            yield DefaultValue x
+        | None -> ()
+        ]
 
 // type InputColumnProps
 
@@ -51,7 +74,7 @@ module TabLink =
         name:string
         onClick: string -> unit
         active: string option
-        children: obj // Fable.React.ReactNode
+        children: Children // Fable.React.ReactNode
         title:string option
     }
     // export let TabLink = <T extends string>(props:TabLinkProps<T>) => (
@@ -65,83 +88,56 @@ module TabLink =
                a[
                    OnClick (fun _ -> props.onClick props.name)
                    Data("name",props.name)
-                ][
-                    unbox props.children
-               ]
+                ] props.children
             ]
     // export type TabTextLinkProps<T extends string> = {
     //   name:T
     //   onClick:Types.Action1<T>
     //   active:T | undefined
     // }
-    type TabTextLinkProps = {
-        name:string
-        onClick: string -> unit
-        active: string option
-    }
+    // type TabTextLinkProps = {
+    //     name:string
+    //     onClick: string -> unit
+    //     active: string option
+    // }
     // export let TabTextLink = <T extends string>(props:TabTextLinkProps<T>) => (
     //     <TabLink name={props.name} active={props.active} onClick={props.onClick}>{props.name}</TabLink>);
-    let TabTextLink (props:TabTextLinkProps) = 
-        TabLink {name=props.name;active=props.active;onClick=props.onClick;title=None;children=props.name}
+    // let TabTextLink (props:TabTextLinkProps) = 
+    let TabTextLink name active onClick = 
+        TabLink {name=name;active=active;onClick=onClick;title=None;children=[unbox name]}
 
+open TabLink
 
-module TabContainer =
-    open TabLink
-
-    // export type TabContainerProps<T extends string>  = {
-    //   addedClasses?: string
-    //   children?:React.ReactNode
-    //   stdTabs?:{names:T[],onClick:Types.Action1<T>,active:T}
-    // }
-    type TabContainerProps = {
-        addedClasses: string option
-        children : obj option
-        stdTabs: {| names:string[];onClick:string -> unit;active:string option |} option
-    }
-    // export let TabContainer = <T extends string>(props:TabContainerProps<T>) => (
-    //   <div className={'tabs is-centered is-boxed ' + (props.addedClasses || '')}>
-    //     <ul>
-    //       {
-    //         props.stdTabs == null ? '' : (props.stdTabs.names.map(n => (<TabTextLink key={n} name={n} active={props.stdTabs.active} onClick={props.stdTabs.onClick} />)))
-    //       }
-    //     {props.children}
-    //     </ul>
-    //   </div>
-    // );
-    let TabContainer (props:TabContainerProps) =
-        div [Class ("tabs is-centered is-boxed" + (props.addedClasses |> Option.defaultValue ""))][
+let TabContainer<'t> addedClasses 
+    (stdTabs:{|
+                names:'t list
+                map: 't -> string
+                onClick:'t -> unit
+                active:'t option |} option)
+    (children: ReactElement seq) =
+        div [Class ("tabs is-centered is-boxed" + (addedClasses |> Option.defaultValue ""))][
             ul [] [
-                match props.stdTabs with
+                match stdTabs with
                 | None -> ()
                 | Some tabs ->
-                    yield! 
+                    yield!
                         tabs.names
-                        |> Array.map(fun n -> 
-                            TabTextLink {name =n;onClick=tabs.onClick;active=tabs.active}
+                        |> Seq.map(fun n ->
+                            TabTextLink (tabs.map n) (tabs.active |> Option.map tabs.map) (fun _ -> tabs.onClick n)
                         )
 
-
-                yield unbox props.children
+                yield! children
             ]
         ]
-
-// export interface StatefulProps<TState> {
-//   state:TState
-//   onStateChange: Types.Action1<TState>
-// }
-type DiagnosticProps ={
-  show:bool
-  value:obj
-}
-// export let Diagnostic = (props:DiagnosticProps) => (
-//   <pre>
-//     {props.show?JSON.stringify(props.value,undefined,4): ''}
-//   </pre>
-// )
-let Diagnostic (props:DiagnosticProps) =
+type DiagnosticMode =
+    |Shown
+    |Hidden
+let Diagnostic mode (value:obj) =
     pre[][
-        if props.show then
-            yield unbox (Fable.Core.JS.JSON.stringify(props.value,space=4))
+        match mode with
+        | Shown ->
+            yield unbox (Fable.Core.JS.JSON.stringify(value,space=4))
+        | _ -> ()
     ]
 // type TextLIProps = {
 //   key:string
@@ -164,18 +160,16 @@ let Diagnostic (props:DiagnosticProps) =
 //             </tbody>
 //           </table>
 // )
-let Table (props:{| headers:string[];children:ReactElement|}) =
+let Table (props:{| headers:string list;children:ReactElement seq |}) =
     table [Class "table"][
         thead [][
             tr[][
-                yield! props.headers |> Array.map(fun h -> 
+                yield! props.headers |> Seq.map(fun h -> 
                     th [Key h;Class "th"][unbox h]
                 )
             ]
         ]
-        tbody [][
-            props.children
-        ]
+        tbody [] props.children
     ]
 
 // old name: FoldableListState

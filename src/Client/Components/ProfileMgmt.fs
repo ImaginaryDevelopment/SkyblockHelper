@@ -76,7 +76,7 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
                 { m with ProfileName = n; CurrentProfile = profile }, Cmd.none
             | None ->
                 eprintfn "No profile found for %s in %A" n map
-                BrowserStorage.toGlobal "profileMap" map
+                toGlobal "profileMap" map
                 m, Cmd.none
 
     | CreateProfile ->
@@ -114,7 +114,7 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
                 None
             |> Option.defaultValue "default"
             |> fun storageName ->
-                BrowserStorage.toGlobal "profileStore" profileStore
+                toGlobal "profileStore" profileStore
                 profileStore.Save (storageName, m.CurrentProfile)
                 |> function
                     | Ok () -> printfn "Saved"

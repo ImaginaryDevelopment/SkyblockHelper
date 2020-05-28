@@ -5,6 +5,8 @@ open Fable.React
 open Fable.React.Props
 open Fable.FontAwesome
 
+open Shared
+
 let horizontalInput labelTxt input =
     div [Class "field is-horizontal"][
         div [Class "field-label is-normal"] [label [Class "label"][str labelTxt]]
@@ -56,3 +58,8 @@ let dropdown labelText (selectedItem:string) items onClick =
                             [ ] ] ] ]
             Dropdown.menu [] itemElements
         ]
+let addClasses items =
+    items
+    |> List.choose Option.ofValueString
+    |> List.map String.trim
+    |> String.concat " "

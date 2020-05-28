@@ -9,6 +9,8 @@
     <Compile Include="../Shared/Shared.fs" />
     <Compile Include="Version.fs" />
     <Compile Include="AppDomain/Skyblock.fs" />
+    <Compile Include="AppDomain/BrewingReference.fs" />
+    <Compile Include="AppDomain/EnchantingReference.fs" />
     <Compile Include="AppDomain/SalesReference.fs" />
     <Compile Include="CodeHelpers/FableHelpers.fs" />
     <Compile Include="CodeHelpers/BrowserStorage.fs" />
@@ -16,6 +18,8 @@
     <Compile Include="Generated.fs" />
     <Compile Include="Components/SharedComponents.fs" />
     <Compile Include="Components/Bazaar.fs" />
+    <Compile Include="Components/Brewing.fs" />
+    <Compile Include="Components/Enchanting.fs" />
     <Compile Include="Components/ProfileMgmt.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>

@@ -1,8 +1,19 @@
 module AppDomain.SalesReference
 
+open Shared
 open Shared.Helpers
 
-type Category = Farming | Mining | Combat | WoodsOrFishes
+type Category = Farming | Mining | Combat | WoodsOrFishes with
+    static member FromString =
+        function
+        | EqualsI "farming" -> Some Farming
+        | EqualsI "mining" -> Some Mining
+        | EqualsI "combat" -> Some Combat
+        | EqualsI "WoodsOrFishes" -> Some WoodsOrFishes
+        | x ->
+            eprintfn "Category.FromString could not interpret %s" x
+            None
+
 // export let referenceDivs = [
 //   crm("Unpacked Ice",0.111111)
 //   crm("Enchanted Paper", 640)
@@ -330,8 +341,11 @@ let preconfigurations = [
   Preconfiguration.MakeDual("Prismarine Shard",WoodsOrFishes)
   Preconfiguration.MakeDual("Prismarine Crystals",WoodsOrFishes)
 ]
+type NameValue = {
+    Name:string
+    Value:decimal
+}
 
-type NameValue = {Name:string;Value:decimal}
 type VendorReference = {
   Name: string
   Values: NameValue list

@@ -58,6 +58,13 @@ module Resources =
 
 open Resources
 // open Fable.Core
+type Rarity =
+    | Legendary
+    | Epic
+    | Rare
+    | Uncommon
+    | Common
+
 type Minion = {Resource: Resource; Level:int}
 // module Minions =
 //     [<Erase>] // maybe this would work?

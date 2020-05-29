@@ -78,41 +78,45 @@ let toggleArrayValue (source: _[],target) =
     if source |> FSharp.Collections.Array.contains target then
         source |> FSharp.Collections.Array.filter(fun x -> x <> target)
     else source |> FSharp.Collections.Array.append ([| target |])
+let toggleListValue (source: _ list) target =
+    if source |> List.contains target then
+        source |> List.filter(fun x -> x <> target)
+    else target::source
 
-module StorageHelp =
-    let mutable logggedStorageFailure = false
+// module StorageHelp =
+//     let mutable logggedStorageFailure = false
 
-    type StorageAccess< 't > = {
-        GetIsLocalStorageAvailable: unit -> bool
-        // option for clearing the value
-        StoreIt: 't option -> unit
-        ReadIt: unit -> 't option
-        GetKeys: unit -> string list
-    }
+//     type StorageAccess< 't > = {
+//         GetIsLocalStorageAvailable: unit -> bool
+//         // option for clearing the value
+//         StoreIt: 't option -> unit
+//         ReadIt: unit -> 't option
+//         GetKeys: unit -> string list
+//     }
 
-    let getIsLocalStorageAvailable () =
-        not <| isNull Browser.WebStorage.localStorage && not <| isNull (box Browser.WebStorage.localStorage.setItem)
-    let private setItem key value = 
-        Browser.WebStorage.localStorage.setItem(key,value)
-    let private getItem key = 
-        Browser.WebStorage.localStorage.getItem(key)
-        |> Option.ofValueString
+//     let getIsLocalStorageAvailable () =
+//         not <| isNull Browser.WebStorage.localStorage && not <| isNull (box Browser.WebStorage.localStorage.setItem)
+//     let private setItem key value = 
+//         Browser.WebStorage.localStorage.setItem(key,value)
+//     let private getItem key = 
+//         Browser.WebStorage.localStorage.getItem(key)
+//         |> Option.ofValueString
 
-    let createStorageAccess key =
-        {
-            GetIsLocalStorageAvailable= getIsLocalStorageAvailable
-            StoreIt= fun (value:'t option) ->
-                if getIsLocalStorageAvailable() then
-                    match value with
-                    | Some x ->
-                        stringify x
-                    | None ->
-                        null
-                    |> setItem key
-            ReadIt= fun () ->
-                getItem key
-                |> Option.map(JSON.parse >> (fun x -> x :?> 't))
-            GetKeys= fun () ->
-                [ 0 .. Browser.WebStorage.localStorage.length - 1]
-                |> List.map (float >> Browser.WebStorage.localStorage.key)
-        }
+//     let createStorageAccess key =
+//         {
+//             GetIsLocalStorageAvailable= getIsLocalStorageAvailable
+//             StoreIt= fun (value:'t option) ->
+//                 if getIsLocalStorageAvailable() then
+//                     match value with
+//                     | Some x ->
+//                         stringify x
+//                     | None ->
+//                         null
+//                     |> setItem key
+//             ReadIt= fun () ->
+//                 getItem key
+//                 |> Option.map(JSON.parse >> (fun x -> x :?> 't))
+//             GetKeys= fun () ->
+//                 [ 0 .. Browser.WebStorage.localStorage.length - 1]
+//                 |> List.map (float >> Browser.WebStorage.localStorage.key)
+//         }

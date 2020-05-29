@@ -127,6 +127,7 @@ open Fake.Core.TargetOperators
 
 "Clean"
     ==> "InstallClient"
+    ?=> "CleanBundle"
     ==> "Bundle"
 
 

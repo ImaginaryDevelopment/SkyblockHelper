@@ -1,0 +1,1 @@
+cls && dotnet fake build -t cleanbundle && dotnet fake build -t bundle

@@ -9,8 +9,6 @@
 var path = require('path');
 var webpack = require('webpack');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
-var CopyWebpackPlugin = require('copy-webpack-plugin');
-var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 
 // If we're running the webpack-dev-server, assume we're in development mode
@@ -100,8 +98,8 @@ module.exports = {
     //      - HotModuleReplacementPlugin: Enables hot reloading when code changes without refreshing
     plugins: isProduction ?
         commonPlugins.concat([
-            new MiniCssExtractPlugin({ filename: 'style.[hash].css' }),
-            new CopyWebpackPlugin([{ from: resolve(CONFIG.assetsDir) }]),
+            // new MiniCssExtractPlugin({ filename: 'style.[hash].css' }),
+            // new CopyWebpackPlugin([{ from: resolve(CONFIG.assetsDir) }]),
         ])
         : commonPlugins.concat([
             new webpack.HotModuleReplacementPlugin(),
@@ -145,26 +143,31 @@ module.exports = {
             },
             {
                 test: /\.(sass|scss|css)$/,
-                use: [
-                    isProduction
-                        ? MiniCssExtractPlugin.loader
-                        : 'style-loader',
-                    'css-loader',
-                    {
-                        loader: 'resolve-url-loader',
-                    },
-                    {
-                      loader: 'sass-loader',
-                      options: { implementation: require('sass') }
+                use: [{
+                    loader: 'style-loader'
+                }, {
+                    loader: 'css-loader'
+                }, {
+                    loader: 'postcss-loader',
+                    options: {
+                        plugins: () => [
+                            require('precss'),
+                            require('autoprefixer')
+                        ]
                     }
+                },{
+                    loader: 'sass-loader'
+                }
+
                 ],
             },
             {
                 test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)(\?.*)?$/,
-                loader: 'file-loader',
-                options: {
-                    name: '[path][name].[ext]'
-                }
+                // loader: 'file-loader',
+                loader: 'file-loader?name=[name].[ext]',
+                // options: {
+                //     name: '[path][name].[ext]'
+                // }
 
             }
         ]

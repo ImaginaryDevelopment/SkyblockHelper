@@ -99,14 +99,14 @@ module Internal =
 
     let enchantRow (props: ERProps) dispatch =
         let et,e = props.E
-        let suc = if props.ColorRec then Fulma.Color.ofColor Fulma.Color.IsSuccess else ""
+        let sucMods = Fulma.Modifier.parseModifiers [Fulma.Modifier.TextColor Fulma.Color.IsSuccess]
+        let suc = if props.ColorRec then sucMods |> String.concat " " else ""
         let isStruck = props.Struck |> List.contains e.Base.Name
         let bcls = BFulma.addClasses [
             yield "button"
             if props.ColorRec then yield suc
             if isStruck then
                 yield "strikethrough"
-
         ]
         trStrike isStruck [
             td [
@@ -126,6 +126,20 @@ module Internal =
                 |Craftable c -> [unbox <| string c.MinEnchantTbl]
                 |Uncraftable _ -> []
             )
+            td[][
+                div[if String.isValueString e.Base.VendorTitle then yield Class "star"][
+                    match e with
+                    |Craftable c -> yield unbox c.Collection
+                    | _ -> ()
+                ]
+            ]
+            td[][
+                div[][
+                    match e with
+                    |Craftable c -> yield unbox <| string c.CraftLvlCreated
+                    | _ -> ()
+                ]
+            ]
             td [](
                 match e with
                 |Craftable c -> [unbox c.Components]
@@ -133,20 +147,20 @@ module Internal =
             )
 
         ]
-    let eBody colorRec struck enchants dispatch =
+    let eBody colorRec struck (et,enchants:Enchant list) dispatch =
                 tbody [](
                     enchants
                     |> List.map( fun x ->
                         enchantRow {
                             Key=
-                                match snd x with
+                                match x with
                                 | Craftable c ->
                                     c.Base.Name
                                 | Uncraftable u ->
                                     u.Name
                             Struck= struck
                             ColorRec= colorRec
-                            E= x
+                            E= et, x
                         } dispatch
                     )
                     
@@ -177,18 +191,19 @@ module Internal =
                         ]
                     ]
                 ]
-                tbody [](
-                    snd props.enchants
-                    |> List.map( fun e ->
-                        enchantRow {
-                            Key= e.Base.Name
-                            Struck= props.struck
-                            ColorRec= props.colorRec
-                            E= fst props.enchants ,e
-                        } dispatch
-                    )
+                eBody props.colorRec props.struck props.enchants dispatch
+                // tbody [](
+                //     snd props.enchants
+                //     |> List.map( fun e ->
+                //         enchantRow {
+                //             Key= e.Base.Name
+                //             Struck= props.struck
+                //             ColorRec= props.colorRec
+                //             E= fst props.enchants ,e
+                //         } dispatch
+                //     )
                     
-                )
+                // )
             ]
         ]
     let armorEnchant useColor strikes enchants dispatch =

@@ -124,7 +124,7 @@ let update (msg : Msg) (m : Model) : Model * Cmd<Msg> =
             if m.SavedNames |> Seq.contains m.ProfileName |> not then
                 let saved = m.ProfileName::m.SavedNames
                 printfn "savedNames will be %A" saved
-                profileNameStore.Save saved
+                profileNameStore.Save <| Some saved
                 |> function
                     | Ok () -> printfn "Saved"
                     | Error exn -> printfn "Exception %A" exn

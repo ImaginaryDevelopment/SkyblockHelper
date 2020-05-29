@@ -1,4 +1,9 @@
 namespace SkyblockHelper
+
+type Slayer =
+    | Zombie
+    | Spider
+    | Wolf
 module Resources =
     // assuming all that can compact have part/epart and block/eblock possibilities
     type CompactableState =
@@ -46,15 +51,15 @@ module Resources =
                 | Seeds -> None
                 | RawBeef -> Some "Cow"
                 | x -> x.GetLabel() |> Some
-    let orderByCraftList customIndex =
-        List.sortBy(
-            function
-            | Custom _ -> customIndex
-            | Cobblestone -> 0
-            | Obsidian -> 1
-            | Glowstone -> 2
-            | Gravel -> 3
-        )
+    // let orderByCraftList customIndex =
+    //     List.sortBy(
+    //         function
+    //         | Custom _ -> customIndex
+    //         | Cobblestone -> 0
+    //         | Obsidian -> 1
+    //         | Glowstone -> 2
+    //         | Gravel -> 3
+    //     )
 
 open Resources
 // open Fable.Core
@@ -64,6 +69,15 @@ type Rarity =
     | Rare
     | Uncommon
     | Common
+    with
+        static member All =
+            [
+                Legendary
+                Epic
+                Rare
+                Uncommon
+                Common
+            ]
 
 type Minion = {Resource: Resource; Level:int}
 // module Minions =

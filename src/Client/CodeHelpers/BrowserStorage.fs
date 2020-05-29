@@ -88,10 +88,10 @@ type IProperty<'t when 't : equality> =
     abstract member Value: 't option with get,set
 
 type IHierarchyFactory =
-    abstract member Create<'t2 when 't2 : equality> : unit -> IHierarchyAccess<'t2>
+    abstract member Create<'t2 when 't2 : equality> : string -> IHierarchyAccess<'t2>
 and IHierarchyAccess<'t when 't : equality> =
     inherit IProperty<'t>
-    abstract member MakeBaby : string -> IHierarchyFactory
+    abstract member MakeBaby : unit -> IHierarchyFactory
 
 module Factory =
     let createProperty (isa:IStorageAccess) =
@@ -113,12 +113,17 @@ module Factory =
                 with get() = prop.Value
                 and set v = prop.Value <- v
         interface IHierarchyAccess<'t> with
-            member __.MakeBaby subkey =
-                f isa (key + "_" + subkey)
+            member __.MakeBaby () =
+                { new IHierarchyFactory with
+                    member __.Create<'t2 when 't2 : equality>(subkey) =
+                        let factory:IHierarchyFactory = f isa (key + "_" + subkey)
+                        factory.Create<'t2> subkey
+
+                }
     let rec makeFactory (isa:IStorageAccess) key :IHierarchyFactory=
         {
             new IHierarchyFactory with
-                member __.Create<'t when 't : equality>() =
+                member __.Create<'t when 't : equality> subkey =
                     let ha = HierarchyAccess<'t>.CreateMe isa key makeFactory
                     upcast ha
         }

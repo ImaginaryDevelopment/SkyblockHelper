@@ -189,10 +189,10 @@ let initState (props:FoldableProps) = ({
 // export let FoldTarget = (props:{isFolded:boolean, children:React.ReactNode}) => (<React.Fragment>
 //   {props.isFolded? null : props.children}
 // </React.Fragment>);
-let FoldTarget (props:{| isFolded:bool;children:ReactElement |}) =
-    if props.isFolded then
-        props.children
-    else null
+let FoldTarget isFolded element : ReactElement =
+    fragment [] [
+        if isFolded then yield element
+    ]
 
 // export let FoldMaster = (props:{title:string,isFolded:boolean,onToggle:Types.Action1<boolean>}) =>
 // {
@@ -200,79 +200,17 @@ let FoldTarget (props:{| isFolded:bool;children:ReactElement |}) =
 //   return (<div onClick={toggle}>{<FontAwesomeIcon icon={props.isFolded === true ? faPlus : faMinus} />} {props.title}</div>);
 // }
 open Fable.FontAwesome
+
 module Fa =
     let FaIcon opts fa =
         Icon.icon opts [Fa.i [fa][]]
+
 let FoldMaster (props:{| title:string;isFolded:bool;onToggle:bool -> unit |}) =
     let icon = if props.isFolded then Fa.Solid.Plus else Fa.Solid.Minus
     let toggle = fun _ -> props.onToggle(not props.isFolded)
     div [OnClick toggle][
         Fa.FaIcon [] icon
     ]
-
-// mostly just an example, the html structure not useful in most cases
-// export let Foldable : CreateFunctionalComponent<FoldableListProps,FoldableListState> = props =>
-// {
-//   const component : Component<FoldableListProps,FoldableListState> = new React.Component(props);
-//   component.state = initState(props);
-//   let toggle = () => component.setState({isFolded:component.state.isFolded == false});
-//   component.render = () => {
-//     return (<div>
-//       <div onClick={toggle}>{<FontAwesomeIcon icon={component.state.isFolded? faPlus : faMinus} />} {props.title}</div>
-//       {component.state.isFolded? null : <div>{props.children}</div>}
-//     </div>);
-//   }
-//   return component;
-// }
-
-
-// export type ComRenderer <TProps,TState> = (props:React.PropsWithChildren<TProps>,currentState:Readonly<TState>, updateState:Types.Action1<TState>) => React.ReactElement<TProps>;
-
-// type StatedComponentCreator = <TProps,TState>(initialState:TState,f:Types.Func3<TProps,TState,Types.Action1<TState>,React.ReactElement<TProps>>, 
-//   fStateObserver?:Types.Action1<TState>) => React.FC<TProps>
-
-// does not account for the possibility that initial state depends on initial props (as in input's defaultValue for instance)
-// export const createStatedComponent : StatedComponentCreator = <TProps,TState>(initialState:TState,f:ComRenderer<TProps,TState>, 
-//   fStateObserver?:Types.Action1<TState>) : React.FC<TProps> =>
-//   (props) =>
-//     {
-//     const [state,setState] = React.useState<TState>(initialState);
-//     return (f(props,state, x => {if(fStateObserver != null) fStateObserver(x);
-//       setState(x);
-//     }));
-//   };
-
-// export const createStoredComponent = <TProps,TState>(storage:StorageAccess<TState>) => {
-//   return (initialState:TState,
-//   f:Types.Func3<TProps,TState,Types.Action1<TState>,React.ReactElement<TProps>>,
-//   fStateObserver?:Types.Action1<TState>) =>
-//   (props:TProps) => {
-//     let fStateObserver2 = (state:TState) => {
-//       if(fStateObserver != null){
-//         fStateObserver(state);
-//         storage.storeIt(state);
-//       }
-//     };
-//     let component = createStatedComponent(initialState,f,fStateObserver2)(props);
-//     return component;
-//   };
-// };
-
-// export let createStoredComponent = <TProps,TState>(key:string, initialProps:TProps, storage:StorageAccess<TState>) =>
-//   (fState:Types.Func1<TProps,TState>, render:ComRenderer<TState>):CreateFunctionalComponent<TProps,TState> => (props:TProps):React.Component<TProps,TState> => {
-//   // storage will be updated before component
-//   let onChange = (f:Types.Action1<TState>) => (next:TState) => {
-//     storage.storeIt(key,next);
-//     // update component state
-//     f(next);
-//   }
-//   console.log('component created:' + key);
-//   let stcmp = createStatedComponent<TProps,TState>(initialProps);
-//   let Component = stcmp(fState,(currentState,onStateChange) => render(currentState,onChange(onStateChange)));
-//   return (<Component {...props} />)
-// }
-// export let FAIcon = props =>(
-//   <span className={'icon ' + props.addedClasses}><i className={'fa '+props.icon}></i></span>);
 
 let getEvValue:Browser.Types.Event -> string =
     fun e ->

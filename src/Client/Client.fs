@@ -24,18 +24,26 @@ type Component =
     | Bazaar
     | Brewing
     | Enchanting
+    // | Events
+    // | Minions
+    | Collections
+
     with
         static member All =
             [
                 Bazaar
                 Brewing
                 Enchanting
+                // Events
+                // Minions
+                Collections
             ]
 
 type ComponentStates = {
         Bazaar: Components.Bazaar.Model
         Brewing: Components.Brewing.Model
         Enchanting: Components.Enchanting.Model
+        Collections: Components.Collections.Component.Model
 }
 
 type Model = {
@@ -51,6 +59,7 @@ type ComponentMsg =
     | BazaarMsg of Components.Bazaar.Msg
     | BrewMsg of Components.Brewing.Msg
     | EnchMsg of Components.Enchanting.Msg
+    | CollMsg of Components.Collections.Component.Msg
 
 type Msg =
     | TabChange of Component
@@ -101,21 +110,29 @@ let subcomponents x =
         }
         ()
     | Brewing ->
-        let __ = {
+        {
             Wrapper= BrewMsg >> CMsg
             Init= InitType.Value Components.Brewing.init
             View= Components.Brewing.view
             Update= Components.Brewing.update
         }
-        ()
+        |> ignore
     | Enchanting ->
-        let __ = {
+        {
             Wrapper = EnchMsg >> CMsg
             Init= InitType.Method Components.Enchanting.init
             View= Components.Enchanting.view
             Update= Components.Enchanting.update
         }
-        ()
+        |> ignore
+    | Collections ->
+        {
+            Wrapper = CollMsg >> CMsg
+            Init= InitType.Method Components.Collections.Component.init
+            View= Components.Collections.Component.view
+            Update= Components.Collections.Component.update
+        }
+        |> ignore
 
 #endif
 
@@ -128,6 +145,7 @@ let init () =
     let baz,cmd = mapCmd (BazaarMsg>>CMsg) Cmd.none <| Components.Bazaar.init None
     let brew,cmd = mapCmd (BrewMsg>>CMsg) cmd <| Components.Brewing.init
     let ench,cmd = mapCmd (EnchMsg>>CMsg) cmd <| Components.Enchanting.init None
+    let coll, cmd = mapCmd (CollMsg>>CMsg) cmd <| Components.Collections.Component.init None
     let model =
         {   ActiveTab=Bazaar; ShowTextMenus=false; Theme=""
             ComponentStates= {
@@ -135,6 +153,8 @@ let init () =
                             Bazaar= baz
                             Brewing= brew
                             Enchanting= ench
+                            Collections= coll
+
             }
         }
     model,cmd
@@ -149,6 +169,9 @@ let updateC msg cs =
     | EnchMsg msg ->
         let next, cmd = Components.Enchanting.update msg cs.Enchanting
         {cs with Enchanting= next}, cmd |> Cmd.map EnchMsg
+    | CollMsg msg ->
+        let next,cmd = Components.Collections.Component.update msg cs.Collections
+        {cs with Collections= next}, cmd |> Cmd.map CollMsg
 
 let update (msg:Msg) (model:Model) =
     match msg with
@@ -164,17 +187,38 @@ let update (msg:Msg) (model:Model) =
 
 
 importAll "./style.scss"
-
-let tabSelector (model:Model) dispatch =
+module Storage = 
+    open BrowserStorage
+    let appStorage = 
+        let isa =
+            { new IStorageAccess
+                with member __.Create key = createStorage key
+            }
+        let sc:IHierarchyAccess<Model> = Factory.unify isa "App"
+        // let sc2 :IHierarchyAccess<Msg> =  sc.MakeBaby "App" |> fun x -> x.Create()
+        ()
+        sc
+    //     {
+    //         new IStorageComponentProps with
+    //             member _.GetStorage key = 
+    //                 createStorage key
+    //             member _.CreateChild key =
+    //                 createStorage 
+    // }
+let tabSelector ({Theme=theme;ActiveTab=at;ComponentStates=cs}) dispatch =
     try
-        match model.ActiveTab with
+        match at with
         |Bazaar ->
             // Bazaar.view {Theme = model.Theme} model dispatch
-            Components.Bazaar.view {Theme=model.Theme} model.ComponentStates.Bazaar (BazaarMsg >> dispatch)
+            Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
         |Brewing ->
-            Components.Brewing.view {Theme=model.Theme} model.ComponentStates.Brewing (BrewMsg >> dispatch)
+            Components.Brewing.view {Theme=theme} cs.Brewing (BrewMsg >> dispatch)
         | Enchanting ->
-            Components.Enchanting.view {Theme=model.Theme} model.ComponentStates.Enchanting (EnchMsg >> dispatch)
+            Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
+        | Collections ->
+            let result = Components.Collections.Component.view () cs.Collections (CollMsg >> dispatch)
+            eprintfn "made result"
+            result
     with ex ->
         div [] [
             unbox <| stringify(ex,null,4)
@@ -191,6 +235,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 | Bazaar -> Fa.Solid.DollarSign
                 | Brewing -> Fa.Solid.Flask
                 | Enchanting -> Fa.Solid.HatWizard
+                | Collections -> Fa.Solid.Warehouse
             {| c= x; icon = icon |}
         )
 

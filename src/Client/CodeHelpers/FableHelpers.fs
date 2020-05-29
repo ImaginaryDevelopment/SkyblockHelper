@@ -2,6 +2,7 @@ module CodeHelpers.FableHelpers
 open Fable.Core.JS
 open Fable.Core.JsInterop
 open Shared
+open Elmish
 
 let stringify x = JSON.stringify x
 let parse x = JSON.parse(x)
@@ -120,3 +121,8 @@ let toggleListValue (source: _ list) target =
 //                 [ 0 .. Browser.WebStorage.localStorage.length - 1]
 //                 |> List.map (float >> Browser.WebStorage.localStorage.key)
 //         }
+
+let mapCmd f model cmd =
+    model, cmd |> Cmd.map f
+let mapUpdate fModel fMsg model cmd =
+    fModel model, cmd |> Cmd.map fMsg

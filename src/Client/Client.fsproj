@@ -9,6 +9,8 @@
     <Compile Include="../Shared/Shared.fs" />
     <Compile Include="Version.fs" />
     <Compile Include="AppDomain/Skyblock.fs" />
+    <Compile Include="AppDomain/Collections/Collections.fs" />
+    <Compile Include="AppDomain/Collections/Weapons.fs" />
     <Compile Include="AppDomain/BrewingReference.fs" />
     <Compile Include="AppDomain/EnchantingReference.fs" />
     <Compile Include="AppDomain/SalesReference.fs" />
@@ -17,10 +19,13 @@
     <Compile Include="UIHelpers/BFulma.fs" />
     <Compile Include="Generated.fs" />
     <Compile Include="Components/SharedComponents.fs" />
+    <Compile Include="Components/ProfileMgmt.fs" />
     <Compile Include="Components/Bazaar.fs" />
     <Compile Include="Components/Brewing.fs" />
+    <Compile Include="Components/Collections/Shared.fs" />
+    <Compile Include="Components/Collections/Weapons.fs" />
+    <Compile Include="Components/Collections.fs" />
     <Compile Include="Components/Enchanting.fs" />
-    <Compile Include="Components/ProfileMgmt.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

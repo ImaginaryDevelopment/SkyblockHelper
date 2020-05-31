@@ -69,7 +69,7 @@ module Internal =
     let reference =
       div [][
           pre [][
-            unbox <| prettySerialize 4 potions
+            unbox <| Resolver.serialize potions
           ]
       ]
 
@@ -98,7 +98,7 @@ module Internal =
             ]
           with e ->
             div [][
-                unbox <| prettySerialize 4 e
+                unbox <| Resolver.serialize e
             ]
 
     [<RequireQualifiedAccess>]

@@ -12,12 +12,13 @@
         "copy-webpack-plugin": "^5.1.1",
         "core-js": "^3.3.2",
         "css-loader": "^2.0.1",
-        "fable-compiler": "^2.4.6",
-        "fable-loader": "^2.1.8",
+        "fable-compiler": "^2.10.0",
+        "fable-loader": "^2.1.9",
         "file-loader": "^4.2.0",
         "html-webpack-plugin": "^3.2.0",
         "mini-css-extract-plugin": "^0.5.0",
         "open-sans-fonts": "^1.5.1",
+        "postcss-loader": "^3.0.0",
         "precss": "^4.0.0",
         "react": "^16.10.2",
         "react-dom": "^16.10.2",
@@ -34,7 +35,6 @@
         "whatwg-fetch": "^3.0.0"
     },
     "dependencies": {
-        "@fortawesome/react-fontawesome": "^0.1.9",
-        "postcss-loader": "^3.0.0"
+        "@fortawesome/react-fontawesome": "^0.1.9"
     }
 }

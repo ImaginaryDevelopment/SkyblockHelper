@@ -20,6 +20,8 @@ open SkyblockHelper
 open Components.SharedComponents
 open Components.SharedComponents.TabLink
 
+let private debug = false
+
 type Component =
     | Bazaar
     | Brewing
@@ -132,8 +134,7 @@ module Storage =
     let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
     let coll = BrowserStorage.StorageAccess.createStorage "AppState_Coll"
 
-let init () = 
-    eprintfn "initing"
+let init () =
     let mapCmd (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init : 't * Cmd<Msg> =
         let m,cmd = init
         m, cmd |> Cmd.map wrapper |> List.append cmd1
@@ -142,24 +143,14 @@ let init () =
     let brew,cmd = mapCmd (BrewMsg>>CMsg) cmd <| Components.Brewing.init (Storage.brew.Get())
     let ench,cmd = mapCmd (EnchMsg>>CMsg) cmd <| Components.Enchanting.init (Storage.ench.Get())
     let coll, cmd = mapCmd (CollMsg>>CMsg) cmd <| Components.Collections.Component.init (Storage.coll.Get())
-    eprintfn "About to try app"
     let app =
         Storage.app.Get()
         |> function
-            | Some x ->
-
-                eprintfn "init: found app state in storage: init tab -> %A and %s" x.ActiveTab
-                    (   match x.ActiveTab with
-                        | Bazaar -> "Baz"
-                        | Collections -> "Coll"
-                        | _ -> "blah"
-
-                    )
-                x
+            | Some x -> x
             | None ->
                 eprintfn "init: no stored site"
                 { ActiveTab= Bazaar; ShowTextMenus= false; Theme= "" }
-    Fable.Core.JS.console.log("starting up app with state", Resolver.serialize app)
+    if debug then Fable.Core.JS.console.log("starting up app with state", Resolver.serialize app)
 
     let model =
         {   AppState = app
@@ -170,7 +161,7 @@ let init () =
                             Collections= coll
             }
         }
-    Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
+    // Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
     model,cmd
 
 let updateC msg cs =
@@ -224,11 +215,9 @@ let update (msg:Msg) (model:Model) =
 importAll "./style.scss"
 
 let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs}) dispatch =
-    eprintfn "tabselector at: %A" at
     try
         match at with
         | Bazaar ->
-            eprintfn "Client.tabselector rendering bazaar"
             Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
         | Brewing ->
             Components.Brewing.view {Theme=theme} cs.Brewing (BrewMsg >> dispatch)
@@ -236,15 +225,13 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs}) dispa
             Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
         | Collections ->
             let result = Components.Collections.Component.view () cs.Collections (CollMsg >> dispatch)
-            eprintfn "made result"
             result
     with ex ->
         div [] [
-            unbox <| prettySerialize 4 ex
+            unbox <| Resolver.serialize ex
         ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
-    eprintfn "Starting with view: %A" model.AppState.ActiveTab
     let tabs =
         Component.All
         |> List.map(fun x ->

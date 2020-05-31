@@ -49,7 +49,7 @@ module Helpers =
         | _ -> None
 
     let tryParseInt x = tryParse System.Int32.TryParse x
-    let tryParseDec x = tryParse System.Decimal.TryParse x |> Option.map float
+    let tryParseDec x = tryParse System.Single.TryParse x |> Option.map float
 
 
 
@@ -71,4 +71,4 @@ module Result =
         |Ok x -> f x
         | _ -> ()
 
-type NameValue = {Name:string;Value:string}
+type NameValue = {Name:string;Value:float option}

@@ -25,11 +25,14 @@ type NumberInputProps = {
     Value: float option
 }
 open CodeHelpers.FableHelpers
+open Shared.Helpers
 
 let NumberInput (props:NumberInputProps) =
+    let parser = 
+        Option.bind tryParseDec
     input [ 
         yield Class "input"
-        yield OnChange (fun x -> {Name= getName x;Value= getValue x} |> props.OnChange)
+        yield OnChange (fun x -> {Name= props.Name;Value= getTargetValue (sprintf "NumberInput.%s" props.Name) x |> parser } |> props.OnChange)
         match props.Placeholder with
         | Some x ->
             yield Placeholder x
@@ -126,7 +129,7 @@ let Diagnostic mode (value:obj) =
         pre[][
             match mode with
             | Shown ->
-                yield unbox (prettySerialize 4 value)
+                yield unbox (Resolver.serialize value)
             | _ -> ()
         ]
     with ex ->

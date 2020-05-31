@@ -57,6 +57,21 @@ module Internal =
             Values:Map<string,float>
         } with
             static member Create model : Model = model
+            // static member Encode (model:Model) =
+            //     Thoth.Json.Encode.object [
+            //         "Selected", Thoth.Json.Encode.string model.Selected
+            //         "Category", Thoth.Json.Encode.string (model.Category |> Option.map string |> Option.defaultValue null)
+            //         "Values", Thoth.Json.Encode.object (
+            //             model.Values
+            //             |> Map.toSeq
+            //             |> Seq.map(fun (k,v) -> 
+            //                 k, Thoth.Json.Encode.float v
+            //             )
+            //             |> List.ofSeq
+            //         )
+            //     ]
+            // static member Decode (x:string) : Model =
+            //     Thoth.Json.Decode.object
 
         type Props = {
             Mode:BazaarMode
@@ -65,7 +80,7 @@ module Internal =
         type Msg =
             | CategoryChange of Category option
             | ItemChange of string
-            | ValueChange of string * string
+            | ValueChange of string * float option
 
         let init overrideOpt =
             match overrideOpt with
@@ -86,14 +101,16 @@ module Internal =
             | Msg.ItemChange x ->
                 {model with Selected = x}, Cmd.none
             | ValueChange (n,v) ->
+                printfn "Adding or removing value %s: %A" n v
                 let next =
                         {model with Values =
-                                    match tryParseDec v with
+                                    match v with
                                     | Some v ->
                                         model.Values |> Map.add n v
                                     | None ->
                                         model.Values |> Map.remove n
                         }
+                printfn "Values next: %A" next.Values
                 next, Cmd.none
 
         let view props model dispatch =
@@ -153,7 +170,7 @@ module Internal =
                                         NumberInput {
                                             Name= form.Label
                                             Value= getKeyValue form.Label
-                                            OnChange=(fun nv -> Msg.ValueChange(nv.Name,nv.Value) |> dispatch)
+                                            OnChange=(fun nv -> eprintfn "Got nv: %A" nv; Msg.ValueChange(nv.Name,nv.Value) |> dispatch)
                                             Placeholder= None
                                         }
                                     ]

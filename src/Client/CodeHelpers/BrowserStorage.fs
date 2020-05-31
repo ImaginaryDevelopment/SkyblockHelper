@@ -1,4 +1,5 @@
 module BrowserStorage
+
 open Fable.Import
 open CodeHelpers.FableHelpers
 open Fable.Core
@@ -21,7 +22,7 @@ type Internal =
                 result
             )
 
-    static member trySave (key:string, valueOpt: 't option, [<Inject>] ?resolver: ITypeResolver<'t>) : Result<unit,string>  =
+    static member trySave (key:string, valueOpt: 't option, [<Inject>] ?resolver: ITypeResolver<'t>) : Result<unit,string> =
         printfn "trying to save"
         try
             // let pojo = Fable.Core.JsInterop.toPlainJsObj value
@@ -29,13 +30,6 @@ type Internal =
                 match valueOpt with
                 | Some (value: 't) ->
                     let stringy = Resolver.serialize(value,resolver=resolver.Value)
-                    // let nonstringy = json.parse(stringy) |> unbox
-                    // let restringy = json.Resolver.serialize nonstringy
-                    // if restringy <> stringy then
-                    //     eprintfn "Serialize to deserialize and back failed"
-                    // if nonstringy <> value then
-                    //     eprintfn "Serialize fail"
-                    //     Fable.Core.JS.console.log("old,new", value,nonstringy)
                     stringy
                 | None -> null
             // let serial = json.Resolver.serialize pojo

@@ -46,7 +46,6 @@ module Internal =
             ]
         else div [][]
 
-
     let BazaarTable (props:{| preHeaders:string list; addedHeaders:string list|}, children) =
         let h = props.preHeaders @ ["Label";"Value";"Divisor";"Vendor"] @ props.addedHeaders 
         Table {|headers=h; children=children|}
@@ -79,7 +78,6 @@ module Internal =
             | Some x -> x
 
         let update msg (model:Model) =
-            printfn "Preconfigured update"
             match msg with
             | Msg.CategoryChange c ->
                 let next = {model with Category = c}
@@ -199,7 +197,7 @@ let merchants =
             ]
         )
     )
-        
+
 [<RequireQualifiedAccess>]
 type Submenu = | Preconfigured | Custom | Merchants
 
@@ -235,8 +233,8 @@ let init overrideOpt : Model * Cmd<Msg> =
         }, Cmd.none
     | Some x ->
         x, Cmd.none
+
 let update msg (model:Model) : Model * Cmd<Msg> =
-    printfn "Bazaar update"
 
     match msg with
     | ModeChange ->
@@ -250,28 +248,36 @@ let update msg (model:Model) : Model * Cmd<Msg> =
         {model with Preconfigured = cm}, cmd |> Cmd.map PreconfiguredMsg
 
 let view (props:Props) (model : Model) (dispatch : Msg -> unit) =
-    let tab =
-        // TODO: Custom
-        match model.Submenu with
-        | Submenu.Preconfigured ->
-            let cm = model.Preconfigured
-            Internal.Preconfigured.view {Mode=model.Mode} cm (Msg.PreconfiguredMsg >> dispatch)
-        | Submenu.Merchants -> merchants
+    let result =
+        let tab =
+            try
+                // TODO: Custom
+                match model.Submenu with
+                | Submenu.Preconfigured ->
+                    let cm = model.Preconfigured
+                    Internal.Preconfigured.view {Mode=model.Mode} cm (Msg.PreconfiguredMsg >> dispatch)
+                | Submenu.Merchants -> merchants
+                | Submenu.Custom -> div[] [unbox "Custom is not implemented"]
+            with ex ->
+                pre [][
+                    unbox (sprintf "Failed to render tab: %s" ex.Message)
+                ]
 
-    div [] [
-        select [Value model.Mode;OnChange (fun _ -> ModeChange |> dispatch)](
-            [Buy;Sell] |> List.map(string >> fun n -> option[Key n][unbox n])
-        )
-        unbox (string model.Mode)
-        TabContainer (Option.ofValueString props.Theme) None (
-            [Submenu.Preconfigured;Submenu.Merchants] |> List.map(fun sm ->
-                TabTextLink (string sm) (string model.Submenu|> Some) (fun _ -> Msg.SubmenuChange sm |> dispatch)
+        div [] [
+            select [Value model.Mode;OnChange (fun _ -> ModeChange |> dispatch)](
+                [Buy;Sell] |> List.map(string >> fun n -> option[Key n][unbox n])
             )
-        )
-        div [Class props.Theme][
-            tab
-        ]
-        Diagnostic Shown model
+            unbox (string model.Mode)
+            TabContainer (Option.ofValueString props.Theme) None (
+                [Submenu.Preconfigured;Submenu.Merchants] |> List.map(fun sm ->
+                    TabTextLink (string sm) (string model.Submenu|> Some) (fun _ -> Msg.SubmenuChange sm |> dispatch)
+                )
+            )
+            div [Class props.Theme][
+                tab
+            ]
+            Diagnostic Shown model
 
-    ]
+        ]
+    result
 

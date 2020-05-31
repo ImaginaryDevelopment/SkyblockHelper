@@ -16,7 +16,7 @@ let foldyListItem props children =
     li [Key props.Name;  Class "list-item"][
         div[Class "columns"][
             div[Class "column"][
-                FoldMaster {| title=null; isFolded= props.Folded; onToggle= props.OnToggle |}
+                FoldMaster {| title=props.Title; isFolded= props.Folded; onToggle= props.OnToggle |}
             ]
             FoldTarget props.Folded (div [Class "column is-a-fifth"] children)
         ]

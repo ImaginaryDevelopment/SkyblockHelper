@@ -23,7 +23,7 @@ dotnet tool restore
 To concurrently run the server and the client components in watch mode use the following command:
 
 ```bash
-.\build.cmd
+.\build.cmd run
 ```
 
 To update the bundle for github pages

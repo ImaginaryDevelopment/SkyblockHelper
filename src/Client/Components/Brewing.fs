@@ -225,10 +225,12 @@ type Msg =
     | TabChange of Subtab
     | BrewChangeMsg of BrewChange
 
-let init : Model * Cmd<Msg> = ({
-  ShowDebuffs= false
-  TPot= TargetPotion.Empty
-  Subtab= Brew
+let init overrideOpt : Model * Cmd<Msg> = (
+    overrideOpt
+    |> Option.defaultValue {
+      ShowDebuffs= false
+      TPot= TargetPotion.Empty
+      Subtab= Brew
 }, Cmd.none)
 
 let update msg (model:Model) =

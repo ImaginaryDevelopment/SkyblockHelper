@@ -60,44 +60,6 @@ module private Internal =
 open Internal
 open Components.SharedComponents
 
-
-// module Component =
-    // let view(iStorage:IHierarchyFactory):FunctionComponent<IHierarchyFactory> = 
-    //     printfn "Making collection component"
-    //     let collectionStorage = iStorage.Create "CollectionComponent"
-    //     eprintfn "Made storage"
-    //     let oldState : Model = collectionStorage.Value |> Option.defaultValue {Subtab=Weapons}
-    //     let f props =
-    //         let state,update =
-    //             eprintfn "Made old state"
-    //             let state = Hooks.useState props
-    //             eprintfn "got hooked state"
-    //             state.current,
-    //                 fun (x:Model) ->
-    //                     collectionStorage.Value <- Some x
-    //                     state.update(x)
-    //         let dispatch =
-    //             function
-    //             | Msg.TabChange x ->
-    //                 update {state with Subtab = x}
-    //         eprintfn "Making tab"
-    //         let tab = getTab state.Subtab
-    //         eprintfn "Made tab"
-    //         let result =
-    //             div [] [
-    //                 unbox "Collections"
-    //                 TabContainer None (
-    //                     Some {|
-    //                             names= CollectionType.All
-    //                             map= string
-    //                             active= Some state.Subtab
-    //                             onClick= Msg.TabChange >> dispatch
-    //                 |}) []
-    //             ]
-    //         eprintfn "Made result"
-    //         result
-    //     let fof = FunctionComponent.Of(f,"Collections")
-    //     fof oldState
     let view props state dispatch =
         div [] [
             unbox "Collections"

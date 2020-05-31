@@ -45,12 +45,14 @@ type ComponentStates = {
         Enchanting: Components.Enchanting.Model
         Collections: Components.Collections.Component.Model
 }
-
-type Model = {
+type State = {
     ActiveTab: Component
     ShowTextMenus: bool
-    ComponentStates: ComponentStates
     Theme: string
+}
+type Model = {
+    ComponentStates: ComponentStates
+    AppState:State
 }
 
 // The Msg type defines what events/actions can occur while the application is running
@@ -70,20 +72,6 @@ type Msg =
 type ComponentInit =
     | BazInit of Components.Bazaar.Model option
     | BrewInit
-
-// model, msg, init, update, view
-// let inline subComponentX
-//     (name: Component)
-//     (icon: Fable.FontAwesome.Fa.IconOption)
-//     (fState: ComponentStates -> 'tState)
-//     (fMsgWrap: 'tMsg -> Msg)
-//     // (init: 'arg -> 'tState*Cmd<'tMsg>)
-//     (update: 'tMsg -> 'tState -> 'tState * Cmd<'tMsg>)
-//     (view: 'tProps -> 'tState -> ('tMsg -> unit) -> ReactElement) wrapper =
-//     // let fInit arg =
-//     //     let next, cmd = init arg
-//     //     next, cmd |> Cmd.map (wrapper >> CMsg)
-//     name, icon, update, view
 
 #if DEBUG
 // model, msg, init, update
@@ -112,7 +100,7 @@ let subcomponents x =
     | Brewing ->
         {
             Wrapper= BrewMsg >> CMsg
-            Init= InitType.Value Components.Brewing.init
+            Init= InitType.Method Components.Brewing.init
             View= Components.Brewing.view
             Update= Components.Brewing.update
         }
@@ -136,82 +124,112 @@ let subcomponents x =
 
 #endif
 
+module Storage =
+    open BrowserStorage
+    let app : StorageAccess<State> =  createStorage "AppState"
+    let baz = createStorage "AppState_Bazaar"
+    let brew = createStorage "AppState_Brew"
+    let ench = createStorage "AppState_Ench"
+    let coll = createStorage "AppState_Coll"
+
 let init () = 
-    // TODO: plumb browser local storage
     let mapCmd (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init : 't * Cmd<Msg> =
         let m,cmd = init
         m, cmd |> Cmd.map wrapper |> List.append cmd1
 
-    let baz,cmd = mapCmd (BazaarMsg>>CMsg) Cmd.none <| Components.Bazaar.init None
-    let brew,cmd = mapCmd (BrewMsg>>CMsg) cmd <| Components.Brewing.init
-    let ench,cmd = mapCmd (EnchMsg>>CMsg) cmd <| Components.Enchanting.init None
-    let coll, cmd = mapCmd (CollMsg>>CMsg) cmd <| Components.Collections.Component.init None
+    let baz,cmd = mapCmd (BazaarMsg>>CMsg) Cmd.none <| Components.Bazaar.init (Storage.baz.Get())
+    let brew,cmd = mapCmd (BrewMsg>>CMsg) cmd <| Components.Brewing.init (Storage.brew.Get())
+    let ench,cmd = mapCmd (EnchMsg>>CMsg) cmd <| Components.Enchanting.init (Storage.ench.Get())
+    let coll, cmd = mapCmd (CollMsg>>CMsg) cmd <| Components.Collections.Component.init (Storage.coll.Get())
+    let app =
+        Storage.app.Get()
+        |> function
+            | Some x ->
+                let x = {x with ActiveTab = x.ActiveTab}
+
+                eprintfn "init: found app state in storage: init tab -> %A and %s" x.ActiveTab
+                    (   match x.ActiveTab with
+                        | Bazaar -> "Baz"
+                        | Collections -> "Coll"
+                        | _ -> "blah"
+
+                    )
+                x
+            | None ->
+                eprintfn "init: no stored site"
+                { ActiveTab= Bazaar; ShowTextMenus= false; Theme= "" }
+    Fable.Core.JS.console.log("starting up app with state", stringify app)
+
     let model =
-        {   ActiveTab=Bazaar; ShowTextMenus=false; Theme=""
+        {   AppState = app
             ComponentStates= {
-                            // TODO: plumb browser local storage result
                             Bazaar= baz
                             Brewing= brew
                             Enchanting= ench
                             Collections= coll
-
             }
         }
+    Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
     model,cmd
+
 let updateC msg cs =
     match msg with
     | BazaarMsg msg ->
         let next,cmd = Components.Bazaar.update msg cs.Bazaar
+        Some next
+        |> Storage.baz.Save 
+        |> ignore
         {cs with Bazaar=next}, cmd |> Cmd.map BazaarMsg
     | BrewMsg msg ->
         let next, cmd = Components.Brewing.update msg cs.Brewing
+        Some next
+        |> Storage.brew.Save 
+        |> ignore
         {cs with Brewing=next},cmd |> Cmd.map BrewMsg
     | EnchMsg msg ->
         let next, cmd = Components.Enchanting.update msg cs.Enchanting
+        Some next
+        |> Storage.ench.Save 
+        |> ignore
         {cs with Enchanting= next}, cmd |> Cmd.map EnchMsg
     | CollMsg msg ->
         let next,cmd = Components.Collections.Component.update msg cs.Collections
+        Some next
+        |> Storage.coll.Save 
+        |> ignore
         {cs with Collections= next}, cmd |> Cmd.map CollMsg
 
 let update (msg:Msg) (model:Model) =
+    eprintfn "Client update: %A" msg
+    let lensState f =
+        let next = f model.AppState
+        Storage.app.Save (Some next)
+        |> function
+            | Ok () -> ()
+            | Error e ->
+                eprintfn "Storage failed"
+        {model with AppState= next}
     match msg with
     | TabChange c ->
-        {model with ActiveTab= c}, Cmd.none
+        lensState (fun s -> {s with ActiveTab= c}), Cmd.none
     | ThemeChange t ->
-        {model with Theme = t |> Option.defaultValue ""}, Cmd.none
+        lensState (fun s -> {s with Theme = t |> Option.defaultValue ""}), Cmd.none
     | TextMenuChange ->
-        {model with ShowTextMenus = not model.ShowTextMenus}, Cmd.none
+        lensState (fun s -> {s with ShowTextMenus = not s.ShowTextMenus}), Cmd.none
     | CMsg msg ->
         let next,cmd = updateC msg model.ComponentStates
         {model with ComponentStates = next},cmd |> Cmd.map CMsg
 
-
 importAll "./style.scss"
-module Storage = 
-    open BrowserStorage
-    let appStorage = 
-        let isa =
-            { new IStorageAccess
-                with member __.Create key = createStorage key
-            }
-        let sc:IHierarchyAccess<Model> = Factory.unify isa "App"
-        // let sc2 :IHierarchyAccess<Msg> =  sc.MakeBaby "App" |> fun x -> x.Create()
-        ()
-        sc
-    //     {
-    //         new IStorageComponentProps with
-    //             member _.GetStorage key = 
-    //                 createStorage key
-    //             member _.CreateChild key =
-    //                 createStorage 
-    // }
-let tabSelector ({Theme=theme;ActiveTab=at;ComponentStates=cs}) dispatch =
+
+let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs}) dispatch =
+    eprintfn "tabselector at: %A" at
     try
         match at with
-        |Bazaar ->
-            // Bazaar.view {Theme = model.Theme} model dispatch
+        | Bazaar ->
+            eprintfn "Client.tabselector rendering bazaar"
             Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
-        |Brewing ->
+        | Brewing ->
             Components.Brewing.view {Theme=theme} cs.Brewing (BrewMsg >> dispatch)
         | Enchanting ->
             Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
@@ -222,11 +240,10 @@ let tabSelector ({Theme=theme;ActiveTab=at;ComponentStates=cs}) dispatch =
     with ex ->
         div [] [
             unbox <| stringify(ex,null,4)
-
         ]
 
-
 let view (model : Model) (dispatch : Msg -> unit) =
+    eprintfn "Starting with view: %A" model.AppState.ActiveTab
     let tabs =
         Component.All
         |> List.map(fun x ->
@@ -240,9 +257,9 @@ let view (model : Model) (dispatch : Msg -> unit) =
         )
 
     let tabIt (c:Component) (icon:Fa.IconOption) =
-        TabLink {name= string c; active=Some <| string model.ActiveTab
-                 title= None; onClick= fun _ -> TabChange c |> dispatch
-                 children= [
+        TabLink {Name= string c; Active=Some <| string model.AppState.ActiveTab
+                 Title= None; OnClick= fun _ -> TabChange c |> dispatch
+                 Children= [
                     Fa.FaIcon List.empty icon
                  ] }
     div []
@@ -251,8 +268,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 [
                     yield! tabs
                     |> List.map(fun x ->
-                        if model.ShowTextMenus then
-                            TabTextLink (string x.c) (Some <| string model.ActiveTab) (fun _ -> TabChange x.c |> dispatch)
+                        if model.AppState.ShowTextMenus then
+                            TabTextLink (string x.c) (Some <| string model.AppState.ActiveTab) (fun _ -> TabChange x.c |> dispatch)
                         else
                             tabIt x.c (x.icon)
 
@@ -260,7 +277,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     yield li [Class "select is-pulled-right"][
                         select [
                             OnChange (getTargetValue("theme select") >> Msg.ThemeChange >> dispatch)
-                            Value model.Theme
+                            Value model.AppState.Theme
                         ][
                             option [Value ""][unbox "Themes..."]
                             option [Value "callout"][unbox "Callout"]
@@ -269,7 +286,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                     ]
                     yield li [Class "m-left"][
                         label [Class "checkbox"][
-                            input [ Type "checkbox"; Checked model.ShowTextMenus
+                            input [ Type "checkbox"; Checked model.AppState.ShowTextMenus
                                     OnChange (fun _ -> dispatch Msg.TextMenuChange)
                             ]
                             unbox "Text menus"
@@ -280,17 +297,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
             )
 
             Container.container [] []
-            Container.container [] [
-              div [] [
-                  unbox "testing"
-                //   Components.Bazaar.RateDisplay {Mode=Components.Bazaar.Sell;Values = List.empty}
-                  Components.ProfileMgmt.profileLink "Sammy314" "Grapes" [
-                    str "Profile"
-                  ]
-              ]
-            ]
             h2 [Class "is-size-2 has-text-centered"][
-                unbox (string model.ActiveTab)
+                unbox (string model.AppState.ActiveTab)
             ]
             tabSelector model (CMsg >> dispatch)
         ]

@@ -71,40 +71,27 @@ module TabLink =
     //   title?:string
     // }
     type TabLinkProps = {
-        name:string
-        onClick: string -> unit
-        active: string option
-        children: Children // Fable.React.ReactNode
-        title:string option
+        Name:string
+        OnClick: string -> unit
+        Active: string option
+        Children: Children // Fable.React.ReactNode
+        Title:string option
     }
-    // export let TabLink = <T extends string>(props:TabLinkProps<T>) => (
-    //     <li key={props.name} title={props.title || props.name} className={props.active==props.name?'active':''}><a onClick={() => props.onClick(props.name)} data-name={props.name}>{props.children}</a></li>);
+
     let TabLink props =
         li [
-            Key props.name
-            Title (props.title |> Option.defaultValue props.name)
-            Class (match props.active with | Some active when active = props.name -> "active" | _ -> "")
+            Key props.Name
+            Title (props.Title |> Option.defaultValue props.Name)
+            Class (match props.Active with | Some active when active = props.Name -> "active" | _ -> "")
            ][
                a[
-                   OnClick (fun _ -> props.onClick props.name)
-                   Data("name",props.name)
-                ] props.children
+                   OnClick (fun _ -> props.OnClick props.Name)
+                   Data("name",props.Name)
+                ] props.Children
             ]
-    // export type TabTextLinkProps<T extends string> = {
-    //   name:T
-    //   onClick:Types.Action1<T>
-    //   active:T | undefined
-    // }
-    // type TabTextLinkProps = {
-    //     name:string
-    //     onClick: string -> unit
-    //     active: string option
-    // }
-    // export let TabTextLink = <T extends string>(props:TabTextLinkProps<T>) => (
-    //     <TabLink name={props.name} active={props.active} onClick={props.onClick}>{props.name}</TabLink>);
-    // let TabTextLink (props:TabTextLinkProps) = 
+
     let TabTextLink name active onClick = 
-        TabLink {name=name;active=active;onClick=onClick;title=None;children=[unbox name]}
+        TabLink {Name=name;Active=active;OnClick=onClick;Title=None;Children=[unbox name]}
 
 open TabLink
 
@@ -129,37 +116,24 @@ let TabContainer<'t> addedClasses
                 yield! children
             ]
         ]
+
 type DiagnosticMode =
     |Shown
     |Hidden
-let Diagnostic mode (value:obj) =
-    pre[][
-        match mode with
-        | Shown ->
-            yield unbox (Fable.Core.JS.JSON.stringify(value,space=4))
-        | _ -> ()
-    ]
-// type TextLIProps = {
-//   key:string
-// }
-// export let TextLI = (props:Types.NameValue) => (
-//   <li key={props.value} className='li ' data-name={props.value}>{props.value}</li>
-// )
 
-// export let Table = (props:{headers:string[], children:React.ReactNode}) => (
-//   <table className="table">
-//             <thead>
-//               <tr>
-//                 {props.headers.map(h =>
-//                   <th key={h} className='th'>{h}</th>
-//                 )}
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {props.children}
-//             </tbody>
-//           </table>
-// )
+let Diagnostic mode (value:obj) =
+    try
+        pre[][
+            match mode with
+            | Shown ->
+                yield unbox (Fable.Core.JS.JSON.stringify(value,space=4))
+            | _ -> ()
+        ]
+    with ex ->
+        pre[][
+            yield unbox ex.Message
+        ]
+
 let Table (props:{| headers:string list;children:ReactElement seq |}) =
     table [Class "table"][
         thead [][
@@ -172,19 +146,15 @@ let Table (props:{| headers:string list;children:ReactElement seq |}) =
         tbody [] props.children
     ]
 
-// old name: FoldableListState
 type FoldableState = {
-  isFolded:bool
+  IsFolded:bool
 }
-// old name: FoldableListProps
+
 type FoldableProps = {
-  defaultFold:bool
-  title:string
-  children:ReactElement
+  DefaultFold:bool
+  Title:string
+  Children:ReactElement
 }
-let initState (props:FoldableProps) = ({
-  isFolded= props.defaultFold
-})
 
 // export let FoldTarget = (props:{isFolded:boolean, children:React.ReactNode}) => (<React.Fragment>
 //   {props.isFolded? null : props.children}
@@ -206,10 +176,11 @@ module Fa =
         Icon.icon opts [Fa.i [fa][]]
 
 let FoldMaster (props:{| title:string;isFolded:bool;onToggle:bool -> unit |}) =
-    let icon = if props.isFolded then Fa.Solid.Plus else Fa.Solid.Minus
+    let icon = if props.isFolded then Fa.Solid.Minus else Fa.Solid.Plus 
     let toggle = fun _ -> props.onToggle(not props.isFolded)
     div [OnClick toggle][
         Fa.FaIcon [] icon
+        unbox props.title
     ]
 
 let getEvValue:Browser.Types.Event -> string =

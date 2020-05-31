@@ -13,7 +13,7 @@ type BazaarMode = Buy | Sell
 module Internal =
     type RateDisplayProps = {
         Mode:BazaarMode
-        Values: {| name:string;value:decimal option;div:int option |} list
+        Values: {| name:string;value:float option;div:int option |} list
     }
 
     let RateDisplay (props) =
@@ -54,7 +54,7 @@ module Internal =
         type Model = {
             Selected:string
             Category:Category option
-            Values:Map<string,decimal>
+            Values:Map<string,float>
         } with
             static member Create model : Model = model
 

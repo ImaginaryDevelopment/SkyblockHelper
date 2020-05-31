@@ -3,9 +3,19 @@ open Fable.Core.JS
 open Fable.Core.JsInterop
 open Shared
 open Elmish
-
-let stringify x = JSON.stringify x
-let parse x = JSON.parse(x)
+open Fable.Core
+// let Resolver.serialize x = JSON.Resolver.serialize x
+// let parse x = JSON.parse(x)
+let prettySerialize (spacing:int) (x:'t) =
+    JSON.stringify(x,space=spacing)
+type Resolver =
+    static member serialize(x:'t, [<Inject>] ?resolver: ITypeResolver<'t>): string =
+        Thoth.Json.Encode.Auto.toString(2,x,resolver=resolver.Value)
+    static member deserialize<'t>(x:string, [<Inject>] ?resolver: ITypeResolver<'t>) : 't option =
+        match Thoth.Json.Decode.Auto.fromString(x, resolver = resolver.Value) with
+        | Ok v -> Some v
+        | _ -> 
+            None
 
 
 // for debugging
@@ -110,7 +120,7 @@ let toggleListValue (source: _ list) target =
 //                 if getIsLocalStorageAvailable() then
 //                     match value with
 //                     | Some x ->
-//                         stringify x
+//                         Resolver.serialize x
 //                     | None ->
 //                         null
 //                     |> setItem key

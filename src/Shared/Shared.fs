@@ -49,7 +49,7 @@ module Helpers =
         | _ -> None
 
     let tryParseInt x = tryParse System.Int32.TryParse x
-    let tryParseDec x = tryParse System.Decimal.TryParse x
+    let tryParseDec x = tryParse System.Decimal.TryParse x |> Option.map float
 
 
 

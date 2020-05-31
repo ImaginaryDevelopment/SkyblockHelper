@@ -29,7 +29,7 @@ type Msg =
     | SaveProfile
 
 
-let profileNameStore = BrowserStorage.createStorage "ProfileNames"
+let profileNameStore = BrowserStorage.StorageAccess.createStorage "ProfileNames"
 let profileStore = BrowserStorage.LookupStorage<Profile>("Profiles")
 // let initialCounter () = Fetch.fetchAs<Counter> "/api/init"
 let fetchProfiles ():Async<string list> = async{
@@ -169,8 +169,8 @@ let minion (x:Minion) onChange =
                 td [] [div [Title tip] [ str text ]]
             ]
     with ex ->
-        eprintfn "Error rendering minion %s" <| stringify x
-        div [] [ stringify ex |> sprintf "Error:%s" |> str ]
+        eprintfn "Error rendering minion %s" <| Resolver.serialize x
+        div [] [ Resolver.serialize ex |> sprintf "Error:%s" |> str ]
 
 let minionList minions onChange =
     printfn "Rendering a minion list"

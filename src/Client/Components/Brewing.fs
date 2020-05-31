@@ -14,7 +14,7 @@ module Internal =
         Name: string option
         TBase: string option
         TLvl: int option
-        DMod: decimal option
+        DMod: float option
         LMod: int option
         Splash: string option
     } with
@@ -69,7 +69,7 @@ module Internal =
     let reference =
       div [][
           pre [][
-            unbox <| stringify(potions,null,4)
+            unbox <| prettySerialize 4 potions
           ]
       ]
 
@@ -98,7 +98,7 @@ module Internal =
             ]
           with e ->
             div [][
-                unbox <| stringify(e,null,4)
+                unbox <| prettySerialize 4 e
             ]
 
     [<RequireQualifiedAccess>]
@@ -178,7 +178,7 @@ module Internal =
       let mods = modifiers |> List.filter(fun x -> x.Mod = modifier)
       console.log("ModDisplay", modifier, mods)
       div [][
-          h3[Class"is-size-3"][unbox <| stringify modifier]
+          h3[Class"is-size-3"][unbox <| Resolver.serialize modifier]
           Table {| headers= ["Material";"Value"]
                    children=
                    (

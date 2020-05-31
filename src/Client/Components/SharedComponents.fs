@@ -22,7 +22,7 @@ type NumberInputProps = {
     Name:string
     OnChange: NameValue -> unit
     Placeholder: string option
-    Value: decimal option
+    Value: float option
 }
 open CodeHelpers.FableHelpers
 
@@ -126,7 +126,7 @@ let Diagnostic mode (value:obj) =
         pre[][
             match mode with
             | Shown ->
-                yield unbox (Fable.Core.JS.JSON.stringify(value,space=4))
+                yield unbox (prettySerialize 4 value)
             | _ -> ()
         ]
     with ex ->

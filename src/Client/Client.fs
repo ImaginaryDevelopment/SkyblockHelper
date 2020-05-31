@@ -126,13 +126,14 @@ let subcomponents x =
 
 module Storage =
     open BrowserStorage
-    let app : StorageAccess<State> =  createStorage "AppState"
-    let baz = createStorage "AppState_Bazaar"
-    let brew = createStorage "AppState_Brew"
-    let ench = createStorage "AppState_Ench"
-    let coll = createStorage "AppState_Coll"
+    let app : StorageAccess<State> =  BrowserStorage.StorageAccess.createStorage "AppState"
+    let baz = BrowserStorage.StorageAccess.createStorage "AppState_Bazaar"
+    let brew = BrowserStorage.StorageAccess.createStorage "AppState_Brew"
+    let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
+    let coll = BrowserStorage.StorageAccess.createStorage "AppState_Coll"
 
 let init () = 
+    eprintfn "initing"
     let mapCmd (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init : 't * Cmd<Msg> =
         let m,cmd = init
         m, cmd |> Cmd.map wrapper |> List.append cmd1
@@ -141,11 +142,11 @@ let init () =
     let brew,cmd = mapCmd (BrewMsg>>CMsg) cmd <| Components.Brewing.init (Storage.brew.Get())
     let ench,cmd = mapCmd (EnchMsg>>CMsg) cmd <| Components.Enchanting.init (Storage.ench.Get())
     let coll, cmd = mapCmd (CollMsg>>CMsg) cmd <| Components.Collections.Component.init (Storage.coll.Get())
+    eprintfn "About to try app"
     let app =
         Storage.app.Get()
         |> function
             | Some x ->
-                let x = {x with ActiveTab = x.ActiveTab}
 
                 eprintfn "init: found app state in storage: init tab -> %A and %s" x.ActiveTab
                     (   match x.ActiveTab with
@@ -158,7 +159,7 @@ let init () =
             | None ->
                 eprintfn "init: no stored site"
                 { ActiveTab= Bazaar; ShowTextMenus= false; Theme= "" }
-    Fable.Core.JS.console.log("starting up app with state", stringify app)
+    Fable.Core.JS.console.log("starting up app with state", Resolver.serialize app)
 
     let model =
         {   AppState = app
@@ -239,7 +240,7 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs}) dispa
             result
     with ex ->
         div [] [
-            unbox <| stringify(ex,null,4)
+            unbox <| prettySerialize 4 ex
         ]
 
 let view (model : Model) (dispatch : Msg -> unit) =

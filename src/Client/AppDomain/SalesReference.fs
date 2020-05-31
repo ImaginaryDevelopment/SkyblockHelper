@@ -22,7 +22,7 @@ type Category = Farming | Mining | Combat | WoodsOrFishes with
 type ItemForm = {
   Label:string
   Div:int option
-  Vend:decimal option
+  Vend:float option
   Asterisk:string option
 } with
     static member CreateEmpty lbl div = {Label=lbl;Div=Some div;Vend=None;Asterisk=None}
@@ -83,7 +83,7 @@ let preconfigurations = [
     Name="Carrot"
     Category=Farming
     Forms=[
-      {ItemForm.CreateEmpty "Carrot" 1 with  Vend= Some <| 3m / 7m }
+      {ItemForm.CreateEmpty "Carrot" 1 with  Vend= Some (float <| 3m / 7m) }
       ItemForm.CreateEmpty "Enchanted Carrot" 160
       ItemForm.CreateSpecial "Enchanted Carrot on a Stick"
       ItemForm.CreateSpecial "Enchanted Golden Carrot"
@@ -343,7 +343,7 @@ let preconfigurations = [
 ]
 type NameValue = {
     Name:string
-    Value:decimal
+    Value:float
 }
 
 type VendorReference = {
@@ -353,44 +353,44 @@ type VendorReference = {
 let crv (name,value) = {Name=name;Value=value}
 let referenceValues = [
     {Name="Adventurer";Values=[
-      crv("Rotten flesh",8m)
-      crv("Bone",8m)
-      crv("String",10m)
-      crv("Gunpowder",10m)
+      crv("Rotten flesh",8.0)
+      crv("Bone",8.0)
+      crv("String",10.0)
+      crv("Gunpowder",10.0)
     ]}
     {Name="Lumber Merchant";Values=[
-      crv("Oak Wood",5m)
-      crv("Birch Wood",5m)
-      crv("Spruce Wood",5m)
-      crv("Dark Oak Wood",5m)
-      crv("Acacia Wood",5m)
-      crv("Jungle Wood",5m)
+      crv("Oak Wood",5.0)
+      crv("Birch Wood",5.0)
+      crv("Spruce Wood",5.0)
+      crv("Dark Oak Wood",5.0)
+      crv("Acacia Wood",5.0)
+      crv("Jungle Wood",5.0)
     ]}
     {Name="Farm Merchant";Values=[
-      crv("Wheat", 2.33m)
-      crv("Carrot",2.33m)
-      crv("Potato",2.33m)
-      crv("Melon",2m)
-      crv("Sugar Cane",5m)
-      crv("Pumpkin",8m)
-      crv("Cocoa Beans",5m)
-      crv("Red Mushroom",12m)
-      crv("Brown Mushroom",12m)
-      crv("Sand",4m)
-      crv("Enchanted Bonemeal",2m)
+      crv("Wheat", 2.33)
+      crv("Carrot",2.33)
+      crv("Potato",2.33)
+      crv("Melon",2.0)
+      crv("Sugar Cane",5.0)
+      crv("Pumpkin",8.0)
+      crv("Cocoa Beans",5.0)
+      crv("Red Mushroom",12.0)
+      crv("Brown Mushroom",12.0)
+      crv("Sand",4.0)
+      crv("Enchanted Bonemeal",2.0)
     ]}
     {Name="Mine Merchant";Values=[
-      crv("Coal", 8m / 2m)
-      crv("Iron Ingot", 22m / 4m)
-      crv("Gold Ingot", 12m / 2m)
-      crv("Gravel", 12m / 2m)
-      crv("Cobblestone", 3m)
+      crv("Coal", 8.0 / 2.0)
+      crv("Iron Ingot", 22.0 / 4.0)
+      crv("Gold Ingot", 12.0 / 2.0)
+      crv("Gravel", 12.0 / 2.0)
+      crv("Cobblestone", 3.0)
     ]}
     {Name="Fish Merchant"; Values=[
-      crv("Raw Fish", 20m)
-      crv("Raw Salmon", 30m)
-      crv("Clownfish", 100m)
-      crv("Pufferfish", 40m)
+      crv("Raw Fish", 20.0)
+      crv("Raw Salmon", 30.0)
+      crv("Clownfish", 100.0)
+      crv("Pufferfish", 40.0)
     ]}
 ];
 

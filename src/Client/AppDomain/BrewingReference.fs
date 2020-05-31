@@ -159,7 +159,7 @@ type ModType =
 type ModValue = 
     | Duration of minutes:int
     | Level of int
-    | Splash of penaltyPercent:decimal
+    | Splash of penaltyPercent:float
     | DurationAndLevel of minutes:int*level:int
 
 type PotModifier = {Mat:string;Mod:ModValue} with
@@ -179,8 +179,8 @@ let modifiers:PotModifier list = [
   {Mod=Level 2; Mat="Enchanted Glowstone Dust"}
   {Mod=Level 3; Mat="Enchanted Glowstone"}
   {Mod=DurationAndLevel(16,3); Mat="Enchanted Redstone Lamp"}
-  {Mod=Splash 0.5m; Mat="Gunpowder"}
-  {Mod=Splash 0m; Mat="Enchanted Gunpowder"}
+  {Mod=Splash 0.5; Mat="Gunpowder"}
+  {Mod=Splash 0.0; Mat="Enchanted Gunpowder"}
 ]
 
 // let getBases = (selected:string) : string[] => 

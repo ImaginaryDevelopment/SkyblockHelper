@@ -1,8 +1,5 @@
 module BrowserStorage
 open Fable.Import
-open Browser.Types
-open Fable.Core.Util
-open Fable.Core.JsInterop
 open CodeHelpers.FableHelpers
 open Fable.Core
 
@@ -52,13 +49,10 @@ type Internal =
             Error(ex.Message)
 
 // assumes we never want to clear a key entirely
-type StorageAccess<'t when 't : equality> = {Get: unit -> 't option; Save: 't option -> Result<unit,string>} with
-    static member createStorage<'t when 't : equality > (name,[<Inject>] ?resolver: ITypeResolver<'t>) =
-        let getter () = Internal.tryGet<'t>(name,resolver.Value)
-        let saver (x:'t option) = Internal.trySave (name,x,resolver=resolver.Value)
-        {   Get= getter
-            Save= saver
-        }
+type StorageAccess<'t when 't : equality >(name) =
+    static member createStorage (name) = StorageAccess(name)
+    member _.Get([<Inject>] ?resolver: ITypeResolver<'t>) =  Internal.tryGet<'t>(name,resolver.Value)
+    member _.Save(x:'t option,[<Inject>] ?resolver: ITypeResolver<'t>) = Internal.trySave (name,x,resolver=resolver.Value)
 
 // perf? -> in the interest of not writing a singleton or enforcing one, we'll fetch from localstorage on each operation
 type LookupStorage<'tvalue when 'tvalue : equality >(key) =
@@ -66,25 +60,25 @@ type LookupStorage<'tvalue when 'tvalue : equality >(key) =
     do
         toGlobal (sprintf "storage_%s" key) storage
 
-    member __.Get():Map<string,'tvalue>=
+    member inline __.Get():Map<string,'tvalue>=
         storage.Get()
         |> Option.defaultValue Array.empty
         |> Map.ofArray
-    member __.ToGlobal() =
+    member inline __.ToGlobal() =
         storage.Get()
         |> toGlobal (sprintf "%sMap" key)
 
-    member x.TryFind key: 'tvalue option =
+    member inline x.TryFind key: 'tvalue option =
         x.Get()
         |> Map.tryFind key
 
-    member x.Save(key,value) =
+    member inline x.Save(key,value) =
         x.Get()
         |> Map.add key value
         |> Map.toArray
         |> Some
         |> storage.Save
-    member x.Remove key =
+    member inline x.Remove key =
         x.Get()
         |> Map.remove key
         |> Map.toArray

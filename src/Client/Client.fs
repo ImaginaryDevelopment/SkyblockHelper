@@ -30,10 +30,12 @@ type Component =
     // | Minions
     | Collections
     | Damage
+    | ApiExperiment
 
     with
         static member All =
             [
+                ApiExperiment
                 Bazaar
                 Brewing
                 Enchanting
@@ -43,7 +45,14 @@ type Component =
                 Damage
             ]
 
+type ApiState = {
+    Key: string
+    Name: string
+    Loading: bool
+}
+
 type ComponentStates = {
+    Api : ApiState
     Bazaar: Components.Bazaar.Model
     Brewing: Components.Brewing.Model
     Enchanting: Components.Enchanting.Model
@@ -64,13 +73,20 @@ type Model = {
 
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
+type ApiMsg =
+    | ApiClick
+    | ApiClear
+    | ApiLoaded of Result<string,exn>
+    | ApiKeyChange of string
+    | ApiNameChange of string
+
 type ComponentMsg =
     | BazaarMsg of Components.Bazaar.Msg
     | BrewMsg of Components.Brewing.Msg
     | EnchMsg of Components.Enchanting.Msg
     | CollMsg of Components.Collections.Component.Msg
     | DmgMsg of Components.Damage.Msg
-
+    | ApiMsg of ApiMsg
 type Msg =
     | TabChange of Component
     | ThemeChange of string option
@@ -97,6 +113,7 @@ type SubComponent<'tProps,'tState,'tMsg, 'tInit> = {
 
 let subcomponents x =
     match x with
+    | ApiExperiment _ -> ()
     | Bazaar ->
         let __ = {
             Wrapper= BazaarMsg >> CMsg
@@ -143,6 +160,7 @@ let subcomponents x =
 module Storage =
     open BrowserStorage
     let app : StorageAccess<State> =  BrowserStorage.StorageAccess.createStorage "AppState"
+    let api = BrowserStorage.StorageAccess.createStorage "AppState_Api"
     let baz = BrowserStorage.StorageAccess.createStorage "AppState_Bazaar"
     let brew = BrowserStorage.StorageAccess.createStorage "AppState_Brew"
     let coll = BrowserStorage.StorageAccess.createStorage "AppState_Coll"
@@ -162,6 +180,7 @@ let init () =
             
         m, cmd |> Cmd.map wrapper |> List.append cmd1
 
+    let api, cmd = mapCmd "ApiInit" (ApiMsg>>CMsg) Cmd.none (fun x -> x |> Option.defaultValue {Key="";Name="";Loading=false}, Cmd.none) Storage.api.Get
     let baz,cmd = mapCmd "BazaarInit" (BazaarMsg>>CMsg) Cmd.none Components.Bazaar.init Storage.baz.Get
     let brew,cmd = mapCmd "BrewInit" (BrewMsg>>CMsg) cmd Components.Brewing.init Storage.brew.Get
     let coll, cmd = mapCmd "CollectionInit" (CollMsg>>CMsg) cmd Components.Collections.Component.init Storage.coll.Get
@@ -173,12 +192,13 @@ let init () =
             | Some x -> x
             | None ->
                 eprintfn "init: no stored site"
-                { ActiveTab= Bazaar; ShowTextMenus= false; Theme= "" }
+                { ActiveTab= Bazaar; ShowTextMenus= false; Theme= ""}
     if debug then Fable.Core.JS.console.log("starting up app with state", Resolver.serialize app)
 
     let model =
         {   AppState = app
             ComponentStates= {
+                            Api = api
                             Bazaar= baz
                             Brewing= brew
                             Collections= coll
@@ -219,6 +239,40 @@ let updateC msg cs =
         fRegular Components.Enchanting.update msg cs.Enchanting Storage.ench.Save
             EnchMsg
             <| fun model next -> {model with Enchanting= next}
+    | ApiMsg msg ->
+        match msg with
+        | ApiKeyChange x ->
+            {cs with Api = {cs.Api with Key=x} }, Cmd.none
+        | ApiNameChange x ->
+            {cs with Api = {cs.Api with Name = x}}, Cmd.none
+        | ApiLoaded(Ok x) ->
+            eprintfn "ApiLoaded?"
+            Fable.Core.JS.console.log("ApiLoaded?",x)
+            {cs with Api = {cs.Api with Loading = false}}, Cmd.none
+        | ApiLoaded(Error ex) ->
+            eprintfn "ApiLoaded?"
+            Fable.Core.JS.console.log("ApiLoaded?",ex.Message)
+            {cs with Api = {cs.Api with Loading = false}}, Cmd.none
+        | ApiClear ->
+            {cs with Api = {cs.Api with Loading = false}}, Cmd.none
+        | ApiClick _ ->
+            if cs.Api.Loading then
+                eprintfn "Clicked while loading"
+                cs, Cmd.none
+            else
+                match cs.Api.Key, cs.Api.Name with
+                | ValueString k, ValueString n ->
+                    let f = Cmd.OfPromise.either CodeHelpers.HypixelAPI.fetchExample () (Ok>>ApiMsg.ApiLoaded>>ApiMsg) (Error>>ApiMsg.ApiLoaded>>ApiMsg)
+                    {cs with Api = {cs.Api with Loading = true}}, f
+                | ValueString _, _ ->
+                    eprintfn "Api attempted without a name"
+                    cs, Cmd.none
+                | _ , ValueString _ ->
+                    eprintfn "Api attempted without a key"
+                    cs, Cmd.none
+                | _ -> 
+                    eprintfn "Api attempted without a name or key"
+                    cs, Cmd.none
 
 let update (msg:Msg) (model:Model) =
     eprintfn "Client update: %A" msg
@@ -237,15 +291,41 @@ let update (msg:Msg) (model:Model) =
         lensState (fun s -> {s with Theme = t |> Option.defaultValue ""}), Cmd.none
     | TextMenuChange ->
         lensState (fun s -> {s with ShowTextMenus = not s.ShowTextMenus}), Cmd.none
+
     | CMsg msg ->
         let next,cmd = updateC msg model.ComponentStates
         {model with ComponentStates = next},cmd |> Cmd.map CMsg
 
 importAll "./style.scss"
 
-let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs}) dispatch =
+let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) (dispatch:ComponentMsg -> unit) =
     try
         match at with
+        | ApiExperiment ->
+            div[][
+                Fulma.Columns.columns[] [
+                    Fulma.Column.column [][
+                        unbox "ApiKey"
+                    ]
+                    Fulma.Column.column [][
+                        input [Type "password"; DefaultValue x.ComponentStates.Api.Key; OnChange (getEvValue>>ApiMsg.ApiKeyChange>> ApiMsg >> dispatch)]
+                    ]
+                ]
+                Fulma.Columns.columns[] [
+                    Fulma.Column.column [][
+                        unbox "Account Name"
+                    ]
+                    Fulma.Column.column [][
+                        input [Type "text"; DefaultValue x.ComponentStates.Api.Name; OnChange(getEvValue >> ApiMsg.ApiNameChange >> ApiMsg >> dispatch)]
+                    ]
+                ]
+                button [Class "button"; OnClick(fun _ -> ApiMsg.ApiClick |> ApiMsg |> dispatch)][
+                    unbox "Fetch"
+                ]
+                button [Class "button"; OnClick(fun _ -> ApiMsg.ApiClear |> ApiMsg |> dispatch)][
+                    unbox "Clear loading state"
+                ]
+            ]
         | Bazaar ->
             Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
         | Brewing ->
@@ -272,6 +352,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 | Collections -> Fa.Solid.Warehouse
                 | Enchanting -> Fa.Solid.HatWizard
                 | Damage -> Fa.Solid.Biohazard
+                | ApiExperiment -> Fa.Solid.Brain
+
 
             {| c= x; icon = icon |}
         )
@@ -284,6 +366,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                  ] }
     div []
         [
+
             TabContainer None None (
                 [
                     yield! tabs
@@ -292,7 +375,6 @@ let view (model : Model) (dispatch : Msg -> unit) =
                             TabTextLink (string x.c) (Some <| string model.AppState.ActiveTab) (fun _ -> TabChange x.c |> dispatch)
                         else
                             tabIt x.c (x.icon)
-
                     )
                     yield li [Class "select is-pulled-right"][
                         select [

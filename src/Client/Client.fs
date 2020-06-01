@@ -262,7 +262,7 @@ let updateC msg cs =
             else
                 match cs.Api.Key, cs.Api.Name with
                 | ValueString k, ValueString n ->
-                    let f = Cmd.OfPromise.either CodeHelpers.HypixelAPI.fetchExample () (Ok>>ApiMsg.ApiLoaded>>ApiMsg) (Error>>ApiMsg.ApiLoaded>>ApiMsg)
+                    let f = Cmd.OfPromise.either CodeHelpers.HypixelAPI.fetchCharacter (k,n) (Ok>>ApiMsg.ApiLoaded>>ApiMsg) (Error>>ApiMsg.ApiLoaded>>ApiMsg)
                     {cs with Api = {cs.Api with Loading = true}}, f
                 | ValueString _, _ ->
                     eprintfn "Api attempted without a name"

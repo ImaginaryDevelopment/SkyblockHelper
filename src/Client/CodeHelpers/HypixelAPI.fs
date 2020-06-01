@@ -25,7 +25,8 @@ module CorsPromise =
     let request xopt =
         let p = promise (fun resolve reject->
             let xhr = Browser.XMLHttpRequest.XMLHttpRequest.Create()
-            xhr.``open``(string xopt.Method, xopt.Url) //"http://www.example.org/example.txt")
+            xhr.``open``(string xopt.Method, xopt.Url,true) //"http://www.example.org/example.txt")
+            // xhr.setRequestHeader("Content-Type","text/plain")
             xopt.Headers
             |> Map.iter(fun k v ->
                 xhr.setRequestHeader(k,v)
@@ -53,7 +54,7 @@ let fetchExample (): Promise<string> =
         Body= None
     }
 
-let fetchCharacter key name =
+let fetchCharacter (key,name) =
     CorsPromise.request {
         Method= GET
         Url= sprintf "http://api.hypixel.net/player?key=%s&name=%s" key name

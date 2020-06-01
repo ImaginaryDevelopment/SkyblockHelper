@@ -1,6 +1,8 @@
 module AppDomain.Collections.Weapons
 
 open SkyblockHelper
+open Shared.Helpers
+
 type CraftType =
     | Slayer of Slayer*int
     | Collection of string
@@ -96,5 +98,20 @@ let bows =[
     fWeapon "Decent" Uncommon
 ]
 
-type WeaponType = Sword | Bow
+type WeaponType = Sword | Bow with
+    static member All =
+        [
+            Sword
+            Bow
+        ]
+    static member Parse =
+        function
+        | EqualsI (string Sword) -> Some Sword
+        | EqualsI (string Bow) -> Some Bow
+        | _ -> None
+    static member Is x y =
+        match x, y with
+        | Sword, Sword -> true
+        | Bow, Bow -> true
+        | _ -> false
 

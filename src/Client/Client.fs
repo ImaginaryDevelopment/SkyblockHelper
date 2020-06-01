@@ -29,6 +29,7 @@ type Component =
     // | Events
     // | Minions
     | Collections
+    | Damage
 
     with
         static member All =
@@ -39,19 +40,23 @@ type Component =
                 // Events
                 // Minions
                 Collections
+                Damage
             ]
 
 type ComponentStates = {
-        Bazaar: Components.Bazaar.Model
-        Brewing: Components.Brewing.Model
-        Enchanting: Components.Enchanting.Model
-        Collections: Components.Collections.Component.Model
+    Bazaar: Components.Bazaar.Model
+    Brewing: Components.Brewing.Model
+    Enchanting: Components.Enchanting.Model
+    Collections: Components.Collections.Component.Model
+    Damage: Components.Damage.Model
 }
+
 type State = {
     ActiveTab: Component
     ShowTextMenus: bool
     Theme: string
 }
+
 type Model = {
     ComponentStates: ComponentStates
     AppState:State
@@ -64,6 +69,7 @@ type ComponentMsg =
     | BrewMsg of Components.Brewing.Msg
     | EnchMsg of Components.Enchanting.Msg
     | CollMsg of Components.Collections.Component.Msg
+    | DmgMsg of Components.Damage.Msg
 
 type Msg =
     | TabChange of Component
@@ -107,6 +113,14 @@ let subcomponents x =
             Update= Components.Brewing.update
         }
         |> ignore
+    | Damage ->
+        {
+            Wrapper= DmgMsg >> CMsg
+            Init= InitType.Method Components.Damage.init
+            View= Components.Damage.view
+            Update= Components.Damage.update
+        }
+        |> ignore
     | Enchanting ->
         {
             Wrapper = EnchMsg >> CMsg
@@ -131,18 +145,28 @@ module Storage =
     let app : StorageAccess<State> =  BrowserStorage.StorageAccess.createStorage "AppState"
     let baz = BrowserStorage.StorageAccess.createStorage "AppState_Bazaar"
     let brew = BrowserStorage.StorageAccess.createStorage "AppState_Brew"
-    let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
     let coll = BrowserStorage.StorageAccess.createStorage "AppState_Coll"
+    let dmg = BrowserStorage.StorageAccess.createStorage "AppState_Dmg"
+    let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
+
 
 let init () =
-    let mapCmd (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init : 't * Cmd<Msg> =
-        let m,cmd = init
+    let inline mapCmd title (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init fOverride : 't * Cmd<Msg> =
+        let m,cmd =
+            try
+                fOverride()
+            with ex ->
+                eprintfn "Failed to deserialize for %s: %s" title ex.Message
+                None
+            |> init
+            
         m, cmd |> Cmd.map wrapper |> List.append cmd1
 
-    let baz,cmd = mapCmd (BazaarMsg>>CMsg) Cmd.none <| Components.Bazaar.init (Storage.baz.Get())
-    let brew,cmd = mapCmd (BrewMsg>>CMsg) cmd <| Components.Brewing.init (Storage.brew.Get())
-    let ench,cmd = mapCmd (EnchMsg>>CMsg) cmd <| Components.Enchanting.init (Storage.ench.Get())
-    let coll, cmd = mapCmd (CollMsg>>CMsg) cmd <| Components.Collections.Component.init (Storage.coll.Get())
+    let baz,cmd = mapCmd "BazaarInit" (BazaarMsg>>CMsg) Cmd.none Components.Bazaar.init Storage.baz.Get
+    let brew,cmd = mapCmd "BrewInit" (BrewMsg>>CMsg) cmd Components.Brewing.init Storage.brew.Get
+    let coll, cmd = mapCmd "CollectionInit" (CollMsg>>CMsg) cmd Components.Collections.Component.init Storage.coll.Get
+    let dmg, cmd = mapCmd "DamageInit" (DmgMsg>>CMsg) cmd Components.Damage.init Storage.dmg.Get
+    let ench,cmd = mapCmd "EnchantingInit" (EnchMsg>>CMsg) cmd Components.Enchanting.init Storage.ench.Get
     let app =
         Storage.app.Get()
         |> function
@@ -157,39 +181,44 @@ let init () =
             ComponentStates= {
                             Bazaar= baz
                             Brewing= brew
-                            Enchanting= ench
                             Collections= coll
+                            Damage= dmg
+                            Enchanting= ench
             }
         }
     // Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
     model,cmd
 
 let updateC msg cs =
+    let inline fRegular fu msg model save fmsg fmodel =
+        let next,cmd = fu msg model
+        Some next
+        |> save
+        |> ignore
+        fmodel cs next, cmd |> Cmd.map fmsg
+
+
     match msg with
     | BazaarMsg msg ->
-        let next,cmd = Components.Bazaar.update msg cs.Bazaar
-        Some next
-        |> Storage.baz.Save 
-        |> ignore
-        {cs with Bazaar=next}, cmd |> Cmd.map BazaarMsg
+        fRegular Components.Bazaar.update msg cs.Bazaar Storage.baz.Save 
+            BazaarMsg
+            <| fun model next -> {model with Bazaar= next}
     | BrewMsg msg ->
-        let next, cmd = Components.Brewing.update msg cs.Brewing
-        Some next
-        |> Storage.brew.Save 
-        |> ignore
-        {cs with Brewing=next},cmd |> Cmd.map BrewMsg
-    | EnchMsg msg ->
-        let next, cmd = Components.Enchanting.update msg cs.Enchanting
-        Some next
-        |> Storage.ench.Save 
-        |> ignore
-        {cs with Enchanting= next}, cmd |> Cmd.map EnchMsg
+        fRegular Components.Brewing.update msg cs.Brewing Storage.brew.Save
+            BrewMsg
+            <| fun model next -> {model with Brewing= next}
     | CollMsg msg ->
-        let next,cmd = Components.Collections.Component.update msg cs.Collections
-        Some next
-        |> Storage.coll.Save 
-        |> ignore
-        {cs with Collections= next}, cmd |> Cmd.map CollMsg
+        fRegular Components.Collections.Component.update msg cs.Collections Storage.coll.Save
+            CollMsg
+            <| fun model next -> {model with Collections= next}
+    | DmgMsg msg ->
+        fRegular Components.Damage.update msg cs.Damage Storage.dmg.Save
+            DmgMsg
+            <| fun model next -> {model with Damage= next}
+    | EnchMsg msg ->
+        fRegular Components.Enchanting.update msg cs.Enchanting Storage.ench.Save
+            EnchMsg
+            <| fun model next -> {model with Enchanting= next}
 
 let update (msg:Msg) (model:Model) =
     eprintfn "Client update: %A" msg
@@ -221,11 +250,12 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs}) dispa
             Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
         | Brewing ->
             Components.Brewing.view {Theme=theme} cs.Brewing (BrewMsg >> dispatch)
+        | Collections ->
+            Components.Collections.Component.view () cs.Collections (CollMsg >> dispatch)
+        | Damage ->
+            Components.Damage.view () cs.Damage (DmgMsg >> dispatch)
         | Enchanting ->
             Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
-        | Collections ->
-            let result = Components.Collections.Component.view () cs.Collections (CollMsg >> dispatch)
-            result
     with ex ->
         div [] [
             unbox <| Resolver.serialize ex
@@ -239,8 +269,10 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 match x with
                 | Bazaar -> Fa.Solid.DollarSign
                 | Brewing -> Fa.Solid.Flask
-                | Enchanting -> Fa.Solid.HatWizard
                 | Collections -> Fa.Solid.Warehouse
+                | Enchanting -> Fa.Solid.HatWizard
+                | Damage -> Fa.Solid.Biohazard
+
             {| c= x; icon = icon |}
         )
 

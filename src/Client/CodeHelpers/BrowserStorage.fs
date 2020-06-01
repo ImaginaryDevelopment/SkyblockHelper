@@ -36,7 +36,7 @@ type Internal =
             printfn "Saving to key %s" key
 
             localStorage.setItem(key,serial)
-            printfn "Saved -> %s" serial
+            // printfn "Saved -> %s" serial
             Ok ()
         with ex ->
             toGlobal "self" Browser.Dom.self

@@ -27,6 +27,40 @@ type NumberInputProps = {
 open CodeHelpers.FableHelpers
 open Shared.Helpers
 
+let Select<'t> 
+    (props:{|
+            addedClasses: string list
+            items: 't list
+            map: 't -> string
+            parse: string -> 't option
+            onChange: 't -> unit
+            active: 't |})
+    =
+        select [
+            yield Value (props.active |> props.map)
+            yield Class ("select" :: props.addedClasses |> String.concat " ")
+            yield OnChange (getTargetValue "SelectOpt.OnChange" >> Option.bind props.parse >> Option.iter props.onChange)
+            ](props.items |> Seq.map(fun item -> option [props.map item |> box |> Value ][unbox <| props.map item]))
+
+let SelectOpt<'t> 
+    (props:{|
+            addedClasses: string list
+            emptyLabel: string
+            items: 't list
+            map: 't -> string
+            parse: string -> 't option
+            onChange: 't option -> unit
+            active: 't option |})
+    =
+        select [
+            yield Value (props.active |> Option.map props.map |> Option.defaultValue "")
+            yield Class ("select" :: props.addedClasses |> String.concat " ")
+            yield OnChange (getTargetValue "SelectOpt.OnChange" >> Option.bind props.parse >> props.onChange)
+            ][
+                yield option [Value ""][unbox props.emptyLabel]
+                yield! (props.items |> Seq.map(fun item -> option [props.map item |> box |> Value ][unbox <| props.map item]))
+            ]
+
 let NumberInput (props:NumberInputProps) =
     let parser = 
         Option.bind tryParseDec

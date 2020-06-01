@@ -22,6 +22,7 @@ let horizontalInput labelTxt input =
 type ButtonState =
     | BtnEnabled of (Browser.Types.MouseEvent -> unit)
     | BtnDisabled
+
 let button txt isPrimary buttonState =
     Button.button
         [ yield Button.IsFullWidth

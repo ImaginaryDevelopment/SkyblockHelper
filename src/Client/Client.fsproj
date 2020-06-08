@@ -17,11 +17,12 @@
     <Compile Include="AppDomain/SalesReference.fs" />
     <Compile Include="CodeHelpers/FableHelpers.fs" />
     <Compile Include="CodeHelpers/BrowserStorage.fs" />
-    <Compile Include="CodeHelpers/HypixelAPI.fs"/>
+    <Compile Include="CodeHelpers/HypixelApi.fs"/>
     <Compile Include="UIHelpers/BFulma.fs" />
     <Compile Include="Generated.fs" />
     <Compile Include="Components/SharedComponents.fs" />
     <Compile Include="Components/ProfileMgmt.fs" />
+    <Compile Include="Components/APIs.fs" />
     <Compile Include="Components/Bazaar.fs" />
     <Compile Include="Components/Brewing.fs" />
     <Compile Include="Components/Collections/Shared.fs" />

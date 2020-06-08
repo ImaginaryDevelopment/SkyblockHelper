@@ -45,14 +45,8 @@ type Component =
                 Damage
             ]
 
-type ApiState = {
-    Key: string
-    Name: string
-    Loading: bool
-}
-
 type ComponentStates = {
-    Api : ApiState
+    Api : Components.Api.Model
     Bazaar: Components.Bazaar.Model
     Brewing: Components.Brewing.Model
     Enchanting: Components.Enchanting.Model
@@ -73,12 +67,6 @@ type Model = {
 
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
-type ApiMsg =
-    | ApiClick
-    | ApiClear
-    | ApiLoaded of Result<string,exn>
-    | ApiKeyChange of string
-    | ApiNameChange of string
 
 type ComponentMsg =
     | BazaarMsg of Components.Bazaar.Msg
@@ -86,7 +74,7 @@ type ComponentMsg =
     | EnchMsg of Components.Enchanting.Msg
     | CollMsg of Components.Collections.Component.Msg
     | DmgMsg of Components.Damage.Msg
-    | ApiMsg of ApiMsg
+    | ApiMsg of Components.Api.Msg
 type Msg =
     | TabChange of Component
     | ThemeChange of string option
@@ -177,10 +165,10 @@ let init () =
                 eprintfn "Failed to deserialize for %s: %s" title ex.Message
                 None
             |> init
-            
+
         m, cmd |> Cmd.map wrapper |> List.append cmd1
 
-    let api, cmd = mapCmd "ApiInit" (ApiMsg>>CMsg) Cmd.none (fun x -> x |> Option.defaultValue {Key="";Name="";Loading=false}, Cmd.none) Storage.api.Get
+    let api, cmd = mapCmd "ApiInit" (ApiMsg>>CMsg) Cmd.none Components.Api.init Storage.api.Get
     let baz,cmd = mapCmd "BazaarInit" (BazaarMsg>>CMsg) Cmd.none Components.Bazaar.init Storage.baz.Get
     let brew,cmd = mapCmd "BrewInit" (BrewMsg>>CMsg) cmd Components.Brewing.init Storage.brew.Get
     let coll, cmd = mapCmd "CollectionInit" (CollMsg>>CMsg) cmd Components.Collections.Component.init Storage.coll.Get
@@ -220,7 +208,7 @@ let updateC msg cs =
 
     match msg with
     | BazaarMsg msg ->
-        fRegular Components.Bazaar.update msg cs.Bazaar Storage.baz.Save 
+        fRegular Components.Bazaar.update msg cs.Bazaar Storage.baz.Save
             BazaarMsg
             <| fun model next -> {model with Bazaar= next}
     | BrewMsg msg ->
@@ -240,39 +228,10 @@ let updateC msg cs =
             EnchMsg
             <| fun model next -> {model with Enchanting= next}
     | ApiMsg msg ->
-        match msg with
-        | ApiKeyChange x ->
-            {cs with Api = {cs.Api with Key=x} }, Cmd.none
-        | ApiNameChange x ->
-            {cs with Api = {cs.Api with Name = x}}, Cmd.none
-        | ApiLoaded(Ok x) ->
-            eprintfn "ApiLoaded?"
-            Fable.Core.JS.console.log("ApiLoaded?",x)
-            {cs with Api = {cs.Api with Loading = false}}, Cmd.none
-        | ApiLoaded(Error ex) ->
-            eprintfn "ApiLoaded?"
-            Fable.Core.JS.console.log("ApiLoaded?",ex.Message)
-            {cs with Api = {cs.Api with Loading = false}}, Cmd.none
-        | ApiClear ->
-            {cs with Api = {cs.Api with Loading = false}}, Cmd.none
-        | ApiClick _ ->
-            if cs.Api.Loading then
-                eprintfn "Clicked while loading"
-                cs, Cmd.none
-            else
-                match cs.Api.Key, cs.Api.Name with
-                | ValueString k, ValueString n ->
-                    let f = Cmd.OfPromise.either CodeHelpers.HypixelAPI.fetchCharacter (k,n) (Ok>>ApiMsg.ApiLoaded>>ApiMsg) (Error>>ApiMsg.ApiLoaded>>ApiMsg)
-                    {cs with Api = {cs.Api with Loading = true}}, f
-                | ValueString _, _ ->
-                    eprintfn "Api attempted without a name"
-                    cs, Cmd.none
-                | _ , ValueString _ ->
-                    eprintfn "Api attempted without a key"
-                    cs, Cmd.none
-                | _ -> 
-                    eprintfn "Api attempted without a name or key"
-                    cs, Cmd.none
+        fRegular Components.Api.update msg cs.Api Storage.api.Save
+            ApiMsg
+            <| fun model next -> {model with Api= next}
+
 
 let update (msg:Msg) (model:Model) =
     eprintfn "Client update: %A" msg
@@ -301,31 +260,7 @@ importAll "./style.scss"
 let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) (dispatch:ComponentMsg -> unit) =
     try
         match at with
-        | ApiExperiment ->
-            div[][
-                Fulma.Columns.columns[] [
-                    Fulma.Column.column [][
-                        unbox "ApiKey"
-                    ]
-                    Fulma.Column.column [][
-                        input [Type "password"; DefaultValue x.ComponentStates.Api.Key; OnChange (getEvValue>>ApiMsg.ApiKeyChange>> ApiMsg >> dispatch)]
-                    ]
-                ]
-                Fulma.Columns.columns[] [
-                    Fulma.Column.column [][
-                        unbox "Account Name"
-                    ]
-                    Fulma.Column.column [][
-                        input [Type "text"; DefaultValue x.ComponentStates.Api.Name; OnChange(getEvValue >> ApiMsg.ApiNameChange >> ApiMsg >> dispatch)]
-                    ]
-                ]
-                button [Class "button"; OnClick(fun _ -> ApiMsg.ApiClick |> ApiMsg |> dispatch)][
-                    unbox "Fetch"
-                ]
-                button [Class "button"; OnClick(fun _ -> ApiMsg.ApiClear |> ApiMsg |> dispatch)][
-                    unbox "Clear loading state"
-                ]
-            ]
+        | ApiExperiment -> Components.Api.view cs.Api (ApiMsg >> dispatch)
         | Bazaar ->
             Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
         | Brewing ->

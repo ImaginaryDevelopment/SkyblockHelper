@@ -1,4 +1,4 @@
-module CodeHelpers.HypixelAPI
+module CodeHelpers.HypixelApi
 
 open Elmish
 open Microsoft.FSharp.Collections
@@ -54,11 +54,83 @@ let fetchExample (): Promise<string> =
         Body= None
     }
 
-let fetchCharacter (key,name) =
+// https://cors-anywhere.herokuapp.com/
+// https://robwu.nl/cors-anywhere.html
+let fetchHerokuProxy url =
     CorsPromise.request {
         Method= GET
-        Url= sprintf "http://api.hypixel.net/player?key=%s&name=%s" key name
+        Url= sprintf "https://cors-anywhere.herokuapp.com/%s" url
         Headers= Map.empty
         Body= None
     }
 
+let fetch useProxy url =
+    if useProxy then
+        fetchHerokuProxy url
+    else
+        CorsPromise.request {
+            Method= GET
+            Url= url
+            Headers= Map.empty
+            Body= None
+        }
+
+
+type ApiReqType =
+    | MinecraftUuid of name:string * timestamp: string option
+    | HypixelProfile of key:string * name:string
+    | HypixelSkyblockProfile of key:string * uuid:string
+
+let getUrl =
+    function
+    | MinecraftUuid (n,tsOpt) ->
+        // https://api.mojang.com/users/profiles/minecraft/<username>?at=<timestamp>
+        let qs = tsOpt |> Option.map (sprintf "?at=%s") |> Option.defaultValue ""
+        let url = sprintf "https://api.mojang.com/users/profiles/minecraft/%s%s" n qs
+        url
+    | HypixelProfile(k,n) ->
+        let url = sprintf "http://api.hypixel.net/player?key=%s&name=%s" k n
+        url
+    | HypixelSkyblockProfile(k,u) ->
+        let url = sprintf "https://api.hypixel.net/Skyblock/profiles?key=%s&uuid=%s" k u
+        url
+
+// let fetchUuid useProxy (name,tsOpt) =
+//     // https://api.mojang.com/users/profiles/minecraft/<username>?at=<timestamp>
+//     let qs = tsOpt |> Option.map (sprintf "?at=%s") |> Option.defaultValue ""
+//     let url = sprintf "https://api.mojang.com/users/profiles/minecraft/%s%s" name qs
+//     if useProxy then
+//         fetchHerokuProxy url
+//     else
+//         CorsPromise.request {
+//             Method= GET
+//             Url= url
+//             Headers= Map.empty
+//             Body= None
+//         }
+
+
+// let fetchHypixelProfile useProxy (key,name) =
+//     let url = sprintf "http://api.hypixel.net/player?key=%s&name=%s" key name
+//     if useProxy then
+//         fetchHerokuProxy url
+//     else
+//         CorsPromise.request {
+//             Method= GET
+//             Url= url
+//             Headers= Map.empty
+//             Body= None
+//         }
+
+// // https://api.hypixel.net/Skyblock/profiles?key=[KEY]&uuid=[UUID]
+// let fetchSkyblockProfile useProxy (key,uuid) =
+//     let url = sprintf "https://api.hypixel.net/Skyblock/profiles?key=%s&uuid=%s" key uuid
+//     if useProxy then
+//         fetchHerokuProxy url
+//     else
+//         CorsPromise.request {
+//             Method= GET
+//             Url= url
+//             Headers= Map.empty
+//             Body= None
+//         }

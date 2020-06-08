@@ -1,5 +1,6 @@
 module Components.Collections.Weapons
 
+open AppDomain.Collections.Collection
 open AppDomain.Collections.Weapons
 open BrowserStorage
 open CodeHelpers.FableHelpers

@@ -100,11 +100,14 @@ module Internal =
     let enchantRow (props: ERProps) dispatch =
         let et,e = props.E
         let sucMods = Fulma.Modifier.parseModifiers [Fulma.Modifier.TextColor Fulma.Color.IsSuccess]
-        let suc = if props.ColorRec then sucMods |> String.concat " " else ""
+        let suc =
+            if props.ColorRec && e.Base.IsRecommended then
+                sucMods |> String.concat " "
+            else ""
         let isStruck = props.Struck |> List.contains e.Base.Name
         let bcls = BFulma.addClasses [
             yield "button"
-            if props.ColorRec then yield suc
+            yield suc
             if isStruck then
                 yield "strikethrough"
         ]
@@ -122,9 +125,9 @@ module Internal =
             ]
             td [][ unbox <| string e.Base.TargetLvl ]
             td [](
-                match e with
-                |Craftable c -> [unbox <| string c.MinEnchantTbl]
-                |Uncraftable _ -> []
+                match e.Base.MinEnchantTbl with
+                | Some l -> [unbox <| string l]
+                | _ -> []
             )
             td[][
                 div[if String.isValueString e.Base.VendorTitle then yield Class "star"][
@@ -208,11 +211,35 @@ module Internal =
         ]
     let armorEnchant useColor strikes enchants dispatch =
         div [][
+            div[][
+                input [
+                    Type "Checkbox"
+                    Checked useColor
+                    OnChange (fun _ -> Msg.ToggleColors |> dispatch)
+                ]
+                unbox "Color Recommendation Levels"
+            ]
+            enchantTable {| colorRec= useColor
+                            enchants= enchants
+                            struck= strikes
 
+            |} dispatch
         ]
     let bowEnchant useColor strikes enchants dispatch =
         div [][
+            div[][
+                input [
+                    Type "Checkbox"
+                    Checked useColor
+                    OnChange (fun _ -> Msg.ToggleColors |> dispatch)
+                ]
+                unbox "Color Recommendation Levels"
+            ]
+            enchantTable {| colorRec= useColor
+                            enchants= enchants
+                            struck= strikes
 
+            |} dispatch
         ]
     let swordEnchant useColor strikes (enchants: _*(Enchant list)) dispatch =
         div[][
@@ -233,6 +260,22 @@ module Internal =
 
             |} dispatch
         ]
+    let toolEnchant useColor strikes enchants dispatch =
+        div [][
+            div[][
+                input [
+                    Type "Checkbox"
+                    Checked useColor
+                    OnChange (fun _ -> Msg.ToggleColors |> dispatch)
+                ]
+                unbox "Color Recommendation Levels"
+            ]
+            enchantTable {| colorRec= useColor
+                            enchants= enchants
+                            struck= strikes
+
+            |} dispatch
+        ]
 
 open Internal
 open AppDomain.EnchantingReference
@@ -244,14 +287,7 @@ let view props model dispatch =
         onClick= (Msg.ChangeSubmenu >> dispatch)
     |}
     div[][
-        TabContainer None (Some stdTabs) [
-            ul [] (
-                EnchantType.All
-                |> List.map(fun et ->
-                    TabTextLink (string et) (Some <| string model.Submenu) (fun _ -> Msg.ChangeSubmenu et |> dispatch)
-                )
-            )
-        ]
+        TabContainer None (Some stdTabs) []
         div [Class props.Theme](
             let strikes =
                 model.Struck
@@ -264,9 +300,8 @@ let view props model dispatch =
                 armorEnchant model.ColorRecommendations strikes aEnchants dispatch
             | Bow ->
                 bowEnchant model.ColorRecommendations strikes bEnchants dispatch
-            | Tool -> div [][]
+            | Tool ->
+                toolEnchant model.ColorRecommendations strikes tEnchants dispatch
             |> List.singleton
-
-
         )
     ]

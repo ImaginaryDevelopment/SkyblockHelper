@@ -26,7 +26,7 @@ type Component =
     | Bazaar
     | Brewing
     | Enchanting
-    // | Events
+    | EventCalc
     // | Minions
     | Collections
     | Damage
@@ -39,7 +39,7 @@ type Component =
                 Bazaar
                 Brewing
                 Enchanting
-                // Events
+                EventCalc
                 // Minions
                 Collections
                 Damage
@@ -49,9 +49,10 @@ type ComponentStates = {
     Api : Components.Api.Model
     Bazaar: Components.Bazaar.Model
     Brewing: Components.Brewing.Model
-    Enchanting: Components.Enchanting.Model
     Collections: Components.Collections.Component.Model
     Damage: Components.Damage.Model
+    Enchanting: Components.Enchanting.Model
+    EventCalc: Components.EventCalc.Model
 }
 
 type State = {
@@ -69,21 +70,19 @@ type Model = {
 // the state of the application changes *only* in reaction to these events
 
 type ComponentMsg =
-    | BazaarMsg of Components.Bazaar.Msg
+    | ApiMsg of Components.Api.Msg
+    | BazMsg of Components.Bazaar.Msg
     | BrewMsg of Components.Brewing.Msg
-    | EnchMsg of Components.Enchanting.Msg
     | CollMsg of Components.Collections.Component.Msg
     | DmgMsg of Components.Damage.Msg
-    | ApiMsg of Components.Api.Msg
+    | EnchMsg of Components.Enchanting.Msg
+    | EvtMsg of Components.EventCalc.Msg
+
 type Msg =
     | TabChange of Component
     | ThemeChange of string option
     | TextMenuChange
     | CMsg of ComponentMsg
-
-type ComponentInit =
-    | BazInit of Components.Bazaar.Model option
-    | BrewInit
 
 #if DEBUG
 // model, msg, init, update
@@ -101,21 +100,36 @@ type SubComponent<'tProps,'tState,'tMsg, 'tInit> = {
 
 let subcomponents x =
     match x with
-    | ApiExperiment _ -> ()
+    | ApiExperiment _ ->
+        {
+            Wrapper= ApiMsg >> CMsg
+            Init= InitType.Method Components.Api.init
+            View= fun _ -> Components.Api.view // ignore 'props
+            Update= Components.Api.update
+        }
+        |> ignore
     | Bazaar ->
-        let __ = {
-            Wrapper= BazaarMsg >> CMsg
+        {
+            Wrapper= BazMsg >> CMsg
             Init= InitType.Method Components.Bazaar.init
             View= Components.Bazaar.view
             Update= Components.Bazaar.update
         }
-        ()
+        |> ignore
     | Brewing ->
         {
             Wrapper= BrewMsg >> CMsg
             Init= InitType.Method Components.Brewing.init
             View= Components.Brewing.view
             Update= Components.Brewing.update
+        }
+        |> ignore
+    | Collections ->
+        {
+            Wrapper = CollMsg >> CMsg
+            Init= InitType.Method Components.Collections.Component.init
+            View= Components.Collections.Component.view
+            Update= Components.Collections.Component.update
         }
         |> ignore
     | Damage ->
@@ -134,12 +148,12 @@ let subcomponents x =
             Update= Components.Enchanting.update
         }
         |> ignore
-    | Collections ->
+    | EventCalc ->
         {
-            Wrapper = CollMsg >> CMsg
-            Init= InitType.Method Components.Collections.Component.init
-            View= Components.Collections.Component.view
-            Update= Components.Collections.Component.update
+            Wrapper= EvtMsg>> CMsg
+            Init= InitType.Method Components.EventCalc.init
+            View= Components.EventCalc.view
+            Update= Components.EventCalc.update
         }
         |> ignore
 
@@ -154,6 +168,7 @@ module Storage =
     let coll = BrowserStorage.StorageAccess.createStorage "AppState_Coll"
     let dmg = BrowserStorage.StorageAccess.createStorage "AppState_Dmg"
     let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
+    let evt = StorageAccess.createStorage "AppState_Evt"
 
 
 let init () =
@@ -169,11 +184,12 @@ let init () =
         m, cmd |> Cmd.map wrapper |> List.append cmd1
 
     let api, cmd = mapCmd "ApiInit" (ApiMsg>>CMsg) Cmd.none Components.Api.init Storage.api.Get
-    let baz,cmd = mapCmd "BazaarInit" (BazaarMsg>>CMsg) Cmd.none Components.Bazaar.init Storage.baz.Get
+    let baz,cmd = mapCmd "BazaarInit" (BazMsg>>CMsg) Cmd.none Components.Bazaar.init Storage.baz.Get
     let brew,cmd = mapCmd "BrewInit" (BrewMsg>>CMsg) cmd Components.Brewing.init Storage.brew.Get
     let coll, cmd = mapCmd "CollectionInit" (CollMsg>>CMsg) cmd Components.Collections.Component.init Storage.coll.Get
     let dmg, cmd = mapCmd "DamageInit" (DmgMsg>>CMsg) cmd Components.Damage.init Storage.dmg.Get
     let ench,cmd = mapCmd "EnchantingInit" (EnchMsg>>CMsg) cmd Components.Enchanting.init Storage.ench.Get
+    let evt,cmd = mapCmd "EventInit" (EvtMsg>>CMsg) cmd Components.EventCalc.init Storage.evt.Get
     let app =
         Storage.app.Get()
         |> function
@@ -192,6 +208,7 @@ let init () =
                             Collections= coll
                             Damage= dmg
                             Enchanting= ench
+                            EventCalc= evt
             }
         }
     // Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
@@ -207,9 +224,13 @@ let updateC msg cs =
 
 
     match msg with
-    | BazaarMsg msg ->
+    | ApiMsg msg ->
+        fRegular Components.Api.update msg cs.Api Storage.api.Save
+            ApiMsg
+            <| fun model next -> {model with Api= next}
+    | BazMsg msg ->
         fRegular Components.Bazaar.update msg cs.Bazaar Storage.baz.Save
-            BazaarMsg
+            BazMsg
             <| fun model next -> {model with Bazaar= next}
     | BrewMsg msg ->
         fRegular Components.Brewing.update msg cs.Brewing Storage.brew.Save
@@ -227,10 +248,10 @@ let updateC msg cs =
         fRegular Components.Enchanting.update msg cs.Enchanting Storage.ench.Save
             EnchMsg
             <| fun model next -> {model with Enchanting= next}
-    | ApiMsg msg ->
-        fRegular Components.Api.update msg cs.Api Storage.api.Save
-            ApiMsg
-            <| fun model next -> {model with Api= next}
+    | EvtMsg msg ->
+        fRegular Components.EventCalc.update msg cs.EventCalc Storage.evt.Save
+            EvtMsg
+            <| fun model next -> {model with EventCalc= next}
 
 
 let update (msg:Msg) (model:Model) =
@@ -262,7 +283,7 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
         match at with
         | ApiExperiment -> Components.Api.view cs.Api (ApiMsg >> dispatch)
         | Bazaar ->
-            Components.Bazaar.view {Theme=theme} cs.Bazaar (BazaarMsg >> dispatch)
+            Components.Bazaar.view {Theme=theme} cs.Bazaar (BazMsg >> dispatch)
         | Brewing ->
             Components.Brewing.view {Theme=theme} cs.Brewing (BrewMsg >> dispatch)
         | Collections ->
@@ -271,9 +292,11 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
             Components.Damage.view () cs.Damage (DmgMsg >> dispatch)
         | Enchanting ->
             Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
+        | EventCalc ->
+            Components.EventCalc.view theme cs.EventCalc (EvtMsg >> dispatch)
     with ex ->
         div [] [
-            unbox <| Resolver.serialize ex
+            unbox ex.Message
         ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
@@ -282,12 +305,13 @@ let view (model : Model) (dispatch : Msg -> unit) =
         |> List.map(fun x ->
             let icon =
                 match x with
+                | ApiExperiment -> Fa.Solid.Brain
                 | Bazaar -> Fa.Solid.DollarSign
                 | Brewing -> Fa.Solid.Flask
                 | Collections -> Fa.Solid.Warehouse
-                | Enchanting -> Fa.Solid.HatWizard
                 | Damage -> Fa.Solid.Biohazard
-                | ApiExperiment -> Fa.Solid.Brain
+                | Enchanting -> Fa.Solid.HatWizard
+                | EventCalc -> Fa.Solid.CalendarAlt
 
 
             {| c= x; icon = icon |}

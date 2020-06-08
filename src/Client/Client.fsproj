@@ -11,6 +11,7 @@
     <Compile Include="AppDomain/Skyblock.fs" />
     <Compile Include="AppDomain/Collections/Collections.fs" />
     <Compile Include="AppDomain/Collections/Weapons.fs" />
+    <Compile Include="AppDomain/Collections/Armor.fs" />
     <Compile Include="AppDomain/BrewingReference.fs" />
     <Compile Include="AppDomain/Damage.fs" />
     <Compile Include="AppDomain/EnchantingReference.fs" />
@@ -27,9 +28,11 @@
     <Compile Include="Components/Brewing.fs" />
     <Compile Include="Components/Collections/Shared.fs" />
     <Compile Include="Components/Collections/Weapons.fs" />
+    <Compile Include="Components/Collections/Armor.fs" />
     <Compile Include="Components/Collections.fs" />
     <Compile Include="Components/Damage.fs" />
     <Compile Include="Components/Enchanting.fs" />
+    <Compile Include="Components/EventCalc.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

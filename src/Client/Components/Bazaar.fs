@@ -184,6 +184,20 @@ module Internal =
                 Diagnostic DiagnosticMode.Shown model
             ]
 
+    // module Custom =
+    //     type CustomItem = {
+    //         Label:string
+    //         Value: float
+    //         Div: int
+    //         Vendor: float option
+    //     }
+    //     type Model = {
+    //         Items: CustomItem list
+    //         NewItem: CustomItem
+    //     }
+    //     type Msg = {
+    //         K
+    //     }
 let merchants =
     div [](
         referenceValues

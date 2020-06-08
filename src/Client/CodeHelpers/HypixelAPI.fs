@@ -1,5 +1,7 @@
 module CodeHelpers.HypixelApi
 
+// https://github.com/HypixelDev/PublicAPI
+
 open Elmish
 open Microsoft.FSharp.Collections
 open CodeHelpers.FableHelpers

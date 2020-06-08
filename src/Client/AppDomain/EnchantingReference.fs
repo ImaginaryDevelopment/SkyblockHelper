@@ -37,11 +37,11 @@ type EnchantBase = {
     TargetLvl: Roman
     VendorTitle: string
     IsRecommended: bool
+    MinEnchantTbl: int option
 }
 
 type Craftable = {
     Base: EnchantBase
-    MinEnchantTbl: int
     Collection: string
     CraftLvlCreated: Roman
     Components: string
@@ -56,23 +56,23 @@ type Enchant =
             | Uncraftable eb -> eb
             | Craftable c -> c.Base
 
-let cBase name tlvl vt isRec = {
+let cBase name tlvl vt isRec minTblLvl = {
         Name= name
         TargetLvl= tlvl
         VendorTitle= vt
         IsRecommended= isRec
+        MinEnchantTbl= minTblLvl
 }
 type private EnchantingHelpers =
 
     static member CEnchant name tlvl meTbl c clc comp vt isRecommended =
         Craftable {
-            Base= cBase name tlvl vt isRecommended
-            MinEnchantTbl = meTbl
+            Base= cBase name tlvl vt isRecommended (Some meTbl)
             Collection = c
             CraftLvlCreated = clc
             Components = comp
         }
-
+let private cEnchant = EnchantingHelpers.CEnchant
 
 // cEnchant\(("[^"]+")\s?,\s?"([^"]+)"\s?,\s?(\d+)\s?,\s?("[^"]+")\s?,\s?"([^"]+)"\s?,\s?("[^"]+")
 // cBase $1 $2 vt 
@@ -80,15 +80,13 @@ type private EnchantingHelpers =
 let sEnchants = Sword,[
     Craftable {
         Base = cBase "Critical" V 
-            "VI - Sven Packmaster - Wolf Slayer IV required" true
-        MinEnchantTbl= 44
+            "VI - Sven Packmaster - Wolf Slayer IV required" true <| Some 44
         Collection= "Diamond 5"
         CraftLvlCreated= IV
         Components= "8 Enchanted Diamond"
     }
     Craftable {
-        Base= cBase "Sharpness" V "VI - Dark Auction" true
-        MinEnchantTbl= 44
+        Base= cBase "Sharpness" V "VI - Dark Auction" true <| Some 44
         Collection= "Gravel 4"
         CraftLvlCreated= IV
         Components= "Iron Sword + 8 Flint"
@@ -118,9 +116,10 @@ let aEnchants = Armor, [
     EnchantingHelpers.CEnchant "Depth Strider(boots)" III 30 "Pufferfish 4" II "2 Salmon 2 Lily Pad" null false
     EnchantingHelpers.CEnchant "Feather Fall(boots)" V 42 "Feather 2" IV "40 feathers" null true
     Uncraftable { 
-                    Name="True Protection(chest)"; TargetLvl= I
+                    Name= "True Protection(chest)"; TargetLvl= I
                     IsRecommended= false
-                    VendorTitle="Birch Park - Howling Cave - $900k"
+                    VendorTitle= "Birch Park - Howling Cave - $900k"
+                    MinEnchantTbl= None
             }
 ]
 
@@ -132,5 +131,28 @@ let bEnchants = Bow, [
     EnchantingHelpers.CEnchant "Cubism" V 44 "Pumpkin 4" IV "32 Pumpkin" null true
     EnchantingHelpers.CEnchant "Snipe" III 27 "Feather 8" II "2 Feather and 2 arrow" null true
     EnchantingHelpers.CEnchant "Impaling" III 32 "Prismarine Shard 1" II "20 Prismarine Shards" null false
+]
+
+let tEnchants = Tool, [
+    // Replenish
+    cEnchant "Efficiency (Axe, Pickaxe,Shovel,Shears)" V 36 "Redstone 3" IV "8 redstone" "VI - Stonk only" true
+    cEnchant "Experience (Pickaxe)" III 28 "Lapis 3" II "2 Lapis Lazuli" "IV - Viking" true
+    cEnchant "Fortune (Pickaxe)" III 28 "Gold 8" III "2 Enchanted Gold" null true
+    cEnchant "Harvesting(Hoe)" V 44 "Wheat 2" IV "16 Wheat" null true
+    cEnchant "Rainbow(Shears)" I 1 "Mutton 6" I "5 White Wool" null false
+    Craftable {
+            Base= cBase "Replenish (Axe,Hoe)" I null false None
+            Collection = "Cocoa 8"
+            CraftLvlCreated = I
+            Components = "16 Enchanted Cookie"
+        }
+    cEnchant "Silk Touch(Pickaxe)" I 4 "String 5" I "1 Enchanted String" "Not Compatible with Smelting Touch" false
+    cEnchant "Smelting Touch(Pickaxe)" I 15 "Coal 2" I "5 Coal Blocks" "Not Compatible with Silk Touch" false
+    Uncraftable {
+                    Name="Telekinesis"; TargetLvl= I
+                    IsRecommended= true
+                    VendorTitle="Rusty - Gold Mine - 100 coins"
+                    MinEnchantTbl= Some 1
+    } 
 ]
 

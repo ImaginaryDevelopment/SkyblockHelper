@@ -155,12 +155,31 @@ type ModType =
     | Level
     | Splash
     | DurationAndLevel
+    with
+      static member All =
+        [
+          Duration
+          Level
+          Splash
+          DurationAndLevel
+        ]
+      static member Humanize =
+        function
+        | DurationAndLevel -> "Duration and Level"
+        | x -> string x
 // type SplashMod = {Mod:"Splash"; Value:string}
-type ModValue = 
+type ModValue =
     | Duration of minutes:int
     | Level of int
     | Splash of penaltyPercent:float
     | DurationAndLevel of minutes:int*level:int
+    with
+      static member GetType =
+        function
+        | Duration _ -> ModType.Duration
+        | Level _ -> ModType.Level
+        | Splash _ -> ModType.Splash
+        | DurationAndLevel _ -> ModType.DurationAndLevel
 
 type PotModifier = {Mat:string;Mod:ModValue} with
     member x.ModType = 

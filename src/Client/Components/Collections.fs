@@ -7,6 +7,7 @@ open Elmish
 open CodeHelpers.FableHelpers
 type ComponentState = {
     WeaponsState: Weapons.Model
+    ArmorState: Armor.Model
 }
 type Model = {
     Subtab: CollectionType
@@ -18,6 +19,7 @@ type Props = {
 
 type CMessages=
     | WMsg of Weapons.Msg
+    | AMsg of Armor.Msg
 type Msg =
     | TabChange of CollectionType
     | CMsg of CMessages
@@ -28,6 +30,7 @@ let init overrideOpt =
         Subtab= Weapons
         ComponentStates={
             WeaponsState= Weapons.init None
+            ArmorState= Armor.init None
         }
     }
     |> fun x -> x, Cmd.none
@@ -37,6 +40,9 @@ let cUpdate msg (state:ComponentState):ComponentState * Cmd<CMessages> =
     | WMsg x ->
         Weapons.update x state.WeaponsState
         ||> mapUpdate (fun s -> {state with WeaponsState= s}) WMsg
+    | AMsg x ->
+        Armor.update x state.ArmorState
+        ||> mapUpdate (fun s -> {state with ArmorState= s}) AMsg
 
 let update msg model :Model * Cmd<Msg> =
     match msg with
@@ -52,6 +58,8 @@ module private Internal =
         match model.Subtab with
         | Weapons ->
             Weapons.view () model.ComponentStates.WeaponsState (WMsg >> dispatch)
+        | Armor ->
+            Armor.view model.ComponentStates.ArmorState (AMsg >> dispatch)
         | _ ->
             div[][
                 unbox "not implemented"

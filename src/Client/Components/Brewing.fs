@@ -175,10 +175,10 @@ module Internal =
         ]
 
     let ModDisplay modifier = //(props: { mod: PotModifier["mod"]; }) => {
-      let mods = modifiers |> List.filter(fun x -> x.Mod = modifier)
+      let mods = modifiers |> List.filter(fun x -> ModValue.GetType x.Mod = modifier)
       console.log("ModDisplay", modifier, mods)
       div [][
-          h3[Class"is-size-3"][unbox <| Resolver.serialize modifier]
+          h3[Class"is-size-3"][unbox <| ModType.Humanize modifier]
           Table {| headers= ["Material";"Value"]
                    children=
                    (
@@ -201,9 +201,10 @@ module Internal =
       ]
 
     let modifications =
+        let modTypes = ModType.All
         div [Class "bd-outline"](
-            modifiers
-            |> List.map (fun x -> x.Mod |> ModDisplay)
+            modTypes
+            |> List.map ModDisplay
         )
     let specialMod = "Enchanted Redstone Lamp"
 

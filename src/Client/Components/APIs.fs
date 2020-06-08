@@ -151,6 +151,10 @@ let view (model:Model) (dispatch:Msg -> unit) =
                 match model.Key, model.Uuid with
                 | ValueString k, ValueString u ->
                     yield lia "View Hypixel Skyblock data in new tab" <| getUrl (ApiReqType.HypixelSkyblockProfile(k,u))
+                | _ ->
+                    yield li [][
+                        unbox "Hypixel data requires Hypixel Api Key and Minecraft Account Uuid"
+                    ]
                 match model.Key, model.Name with
                 | ValueString k, ValueString n ->
                     yield lia "View Hypixel data in new tab" <| getUrl (ApiReqType.HypixelProfile(k, n))

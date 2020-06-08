@@ -6,6 +6,9 @@ open Elmish
 open Fable.Core
 open Thoth.Json
 
+module Map = FSharp.Collections.Map
+type Map<'k,'v when 'k : comparison> = FSharp.Collections.Map<'k,'v>
+
 let private debug = false
 // let Resolver.serialize x = JSON.Resolver.serialize x
 // let parse x = JSON.parse(x)
@@ -13,30 +16,19 @@ type Resolver =
     // type Encoder<'T> = 'T -> JsonValue
     static member MapEncoder<'t>(coders) = // : Encoder<FSharp.Collections.Map<_,_>> =
         let mapEncoder : Encoder<_> =
-            fun (x:FSharp.Collections.Map<string,float>) ->
+            fun (x:Map<string,float>) ->
             Thoth.Json.Encode.object (
                                         x
-                                        |> FSharp.Collections.Map.toSeq
+                                        |> Map.toSeq
                                         |> Seq.map(fun (k,v) ->
                                             k, Thoth.Json.Encode.float v
                                         )
                     )
         // type Decoder<'T> = string -> JsonValue -> Result<'T, DecoderError>
-        let mapDecoder : Decoder<FSharp.Collections.Map<string,float>> =
+        let mapDecoder : Decoder<Map<string,float>> =
             fun x jv ->
                 let decoderish= Decode.dict Decode.float
                 decoderish x jv
-            // let decoderish : Decoder< (string*float)[] > = Thoth.Json.Decode.Auto.generateDecoder()
-            // fun (x:string) jv ->
-            //     Decode.map2 Decode.di
-            //     match Decode.fromString decoderish x with
-            //     | Ok x ->
-            //         let result =
-            //             x
-            //             |> FSharp.Collections.Map.ofArray
-            //             |> Result<_,string>.Ok
-            //         result
-            //     | Error e -> Error e
         let coders =
             coders
             |> Extra.withCustom mapEncoder mapDecoder
@@ -97,16 +89,6 @@ let getName (ev:Browser.Types.Event) =
         |> Option.defaultValue ""
     | None -> ""
 
-// let getValue(ev:Browser.Types.Event) =
-//     match getTargetAsHtml ev with
-//     | Some target ->
-//         getAttrValue"value" target
-//         |> Option.defaultValue ""
-//     | None -> ""
-
-
-// let getTargetInfo =
-
 let getTargetName title ev =
     try
         let name = getName ev
@@ -135,6 +117,21 @@ let toggleListValue (source: _ list) target =
     if source |> List.contains target then
         source |> List.filter(fun x -> x <> target)
     else target::source
+
+let toggleMapListValue (source: Map<_,_ list>) k v =
+    source
+    |> Map.tryFind k
+    |> function
+        | None ->
+            source |> Map.add k [v]
+        | Some [x] when x = v ->
+            source |> Map.remove k
+        | Some items when items |> List.contains v ->
+            source |> Map.add k (items |> List.filter(fun x -> x = v))
+        | Some items ->
+            source |> Map.add k (v::items)
+
+
 
 let mapCmd f model cmd =
     model, cmd |> Cmd.map f

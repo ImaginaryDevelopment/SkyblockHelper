@@ -2,10 +2,8 @@ module AppDomain.Collections.Weapons
 
 open SkyblockHelper
 open Shared.Helpers
+open AppDomain.Collections.Collection
 
-type CraftType =
-    | Slayer of Slayer*int
-    | Collection of string
 type Weapon = {
     Name: string
     Rarity: Rarity 

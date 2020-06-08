@@ -68,6 +68,7 @@ let update (msg:Msg) (model:Model): Model * Cmd<Msg> =
         changeItem (fun ti -> {ti with Resource=x}), Cmd.none
     | ItemResourceAmountChange x ->
         changeItem (fun ti -> {ti with ResourceAmount=x}), Cmd.none
+
 module Internals =
     let itemSelector items selectedItemOpt onSelected =
         SelectOpt {|
@@ -78,8 +79,9 @@ module Internals =
                     map= (fun item -> sprintf "%s(%s)" item.Name item.Resource)
                     parse= (function
                         | ValueString x ->
-                            let name = x.[0..x.IndexOf "("]
-                            let resource = x.[x.IndexOf "(" + 1 .. x.IndexOf(")")]
+                            let name = x.[0..x.IndexOf "(" - 1]
+                            let resource = x.[x.IndexOf "(" + 1 .. x.IndexOf(")") - 1]
+                            printfn "Selecting via text %s - %s" name resource
                             items
                             |> List.tryFind(fun x -> x.Name= name && x.Resource = resource)
                         | _ -> None
@@ -93,8 +95,8 @@ module Internals =
         }
     let targetItems = [
         item "Leaping Sword" "Spider Eye" 245_760
+        item "Runaan's Bow" "Bone" 30_720
         item "Runaan's Bow" "String" 36_864
-        item "Runaan's Bow" "String" 30_720
         item "Treecapitator" "Obsidian" 81_920
     ]
     let fuelColumn (name:string) unfueledCoins (multiplier:float) durationHr asterisk =
@@ -114,7 +116,7 @@ module Internals =
             span [][
                 unbox (sprintf "%.0f%% fuel makes " fuelPercentDisplay)
             ]
-            unbox <| sprintf "%.2f coins per hour with %.0f%% fueld. Fuel earns %.1f in 1 hour." fuelproduces fuelPercentDisplay fuelCoinOverage
+            unbox <| sprintf "%.2f coins per hour with %.0f%% fuel. Fuel earns %.1f in 1 hour." fuelproduces fuelPercentDisplay fuelCoinOverage
         ]
     let fuelAnalysis (productionPerHr:float) bazaarPlain =
         let unfueledCoins = productionPerHr * bazaarPlain
@@ -160,16 +162,21 @@ open Internals
 
 let view (model:Model) (dispatch:Msg -> unit) =
     let productionPerHrPerMinion = if model.Delay > 0 then float model.Production * 3600.0 / 2.0 / float model.Delay |> Some else None
-    let reqHours = model.SelectedItem |> Option.bind(fun si -> if model.Count > 0 then  float si.ResourceAmount / float model.Count |> Some else None)
+    let reqHours =
+        match productionPerHrPerMinion,model.SelectedItem with
+        | Some prod, Some si when model.Count > 0  ->
+            float si.ResourceAmount / (float model.Count * prod)
+            |> Some 
+        | _ -> None
+        // model.SelectedItem |> Option.bind(fun si -> if model.Count > 0 then float si.ResourceAmount / float model.Count |> Some else None)
     let reqDays = reqHours |> Option.map(fun hr -> if hr > 24.0 then hr / 24.0 else 0.0)
-    // SelectOpt
     div[][
         div [Class "bd-callout"](
             let hfield label title value onChange =
                 HField {|
                         label= label
                         title= title
-                        input=(fun cls -> NumberInput {
+                        input=(fun _cls -> NumberInput {
                                                     Name= ""
                                                     Value= Some value
                                                     Placeholder= None
@@ -184,9 +191,7 @@ let view (model:Model) (dispatch:Msg -> unit) =
                 hfield "Est. Value" "How much do you think 1 unit would sell for?" model.BazaarPlain (BazaarChange >> dispatch)
                 hfield "Count" "How many minions of this tier will you be using?" (float model.Count) (int >> Msg.CountChange >> dispatch)
             ]
-
-
-                )
+        )
         fuelAnalysis (productionPerHrPerMinion |> Option.defaultValue 0.0) model.BazaarPlain
         hr []
         Fulma.Column.column [][
@@ -194,20 +199,20 @@ let view (model:Model) (dispatch:Msg -> unit) =
             span[Class "Span"][
                 match model.SelectedItem with
                 | None -> ()
-                | Some si -> yield unbox si.Resource
+                | Some si -> yield unbox <| sprintf "%i - %s" si.ResourceAmount si.Resource
             ]
         ]
         Fulma.Columns.columns [](
             [
                 [
-                    yield unbox <| sprintf "%.0f" model.BazaarPlain
+                    // yield unbox <| sprintf "%.0f " model.BazaarPlain
                     match reqDays with
                     | Some reqDays ->
-                        yield unbox <| sprintf "%.1f days" reqDays
+                        yield unbox <| sprintf " %.1f days " reqDays
                     | None -> yield unbox "0 days"
                     match reqHours with
                     | Some reqHours ->
-                        yield unbox <| sprintf "%.2f hours" reqHours
+                        yield unbox <| sprintf "or %.2f hours" reqHours
                     | None -> yield unbox "0 hours"
                 ]
             ]

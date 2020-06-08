@@ -33,6 +33,7 @@
     <Compile Include="Components/Damage.fs" />
     <Compile Include="Components/Enchanting.fs" />
     <Compile Include="Components/EventCalc.fs" />
+    <Compile Include="Components/Minions.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

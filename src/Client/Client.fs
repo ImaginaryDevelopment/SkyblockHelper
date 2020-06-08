@@ -23,14 +23,14 @@ open Components.SharedComponents.TabLink
 let private debug = false
 
 type Component =
+    | ApiExperiment
     | Bazaar
     | Brewing
-    | Enchanting
-    | EventCalc
-    // | Minions
     | Collections
     | Damage
-    | ApiExperiment
+    | Enchanting
+    | EventCalc
+    | Minions
 
     with
         static member All =
@@ -40,7 +40,7 @@ type Component =
                 Brewing
                 Enchanting
                 EventCalc
-                // Minions
+                Minions
                 Collections
                 Damage
             ]
@@ -53,6 +53,7 @@ type ComponentStates = {
     Damage: Components.Damage.Model
     Enchanting: Components.Enchanting.Model
     EventCalc: Components.EventCalc.Model
+    Mins: Components.Minions.Model
 }
 
 type State = {
@@ -77,6 +78,7 @@ type ComponentMsg =
     | DmgMsg of Components.Damage.Msg
     | EnchMsg of Components.Enchanting.Msg
     | EvtMsg of Components.EventCalc.Msg
+    | MinMsg of Components.Minions.Msg
 
 type Msg =
     | TabChange of Component
@@ -150,12 +152,21 @@ let subcomponents x =
         |> ignore
     | EventCalc ->
         {
-            Wrapper= EvtMsg>> CMsg
+            Wrapper= EvtMsg >> CMsg
             Init= InitType.Method Components.EventCalc.init
             View= Components.EventCalc.view
             Update= Components.EventCalc.update
         }
         |> ignore
+    | Minions ->
+        {
+            Wrapper= MinMsg >> CMsg
+            Init= InitType.Method Components.Minions.init
+            View= fun _ -> Components.Minions.view
+            Update= Components.Minions.update
+        }
+        |> ignore
+
 
 #endif
 
@@ -169,6 +180,7 @@ module Storage =
     let dmg = BrowserStorage.StorageAccess.createStorage "AppState_Dmg"
     let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
     let evt = StorageAccess.createStorage "AppState_Evt"
+    let minio = StorageAccess.createStorage "AppState_Minions"
 
 
 let init () =
@@ -184,12 +196,13 @@ let init () =
         m, cmd |> Cmd.map wrapper |> List.append cmd1
 
     let api, cmd = mapCmd "ApiInit" (ApiMsg>>CMsg) Cmd.none Components.Api.init Storage.api.Get
-    let baz,cmd = mapCmd "BazaarInit" (BazMsg>>CMsg) Cmd.none Components.Bazaar.init Storage.baz.Get
+    let baz,cmd = mapCmd "BazaarInit" (BazMsg>>CMsg) cmd Components.Bazaar.init Storage.baz.Get
     let brew,cmd = mapCmd "BrewInit" (BrewMsg>>CMsg) cmd Components.Brewing.init Storage.brew.Get
     let coll, cmd = mapCmd "CollectionInit" (CollMsg>>CMsg) cmd Components.Collections.Component.init Storage.coll.Get
     let dmg, cmd = mapCmd "DamageInit" (DmgMsg>>CMsg) cmd Components.Damage.init Storage.dmg.Get
     let ench,cmd = mapCmd "EnchantingInit" (EnchMsg>>CMsg) cmd Components.Enchanting.init Storage.ench.Get
     let evt,cmd = mapCmd "EventInit" (EvtMsg>>CMsg) cmd Components.EventCalc.init Storage.evt.Get
+    let minio, cmd = mapCmd "MinsInit" (MinMsg>>CMsg) cmd Components.Minions.init Storage.minio.Get
     let app =
         Storage.app.Get()
         |> function
@@ -209,6 +222,7 @@ let init () =
                             Damage= dmg
                             Enchanting= ench
                             EventCalc= evt
+                            Mins= minio
             }
         }
     // Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
@@ -252,6 +266,10 @@ let updateC msg cs =
         fRegular Components.EventCalc.update msg cs.EventCalc Storage.evt.Save
             EvtMsg
             <| fun model next -> {model with EventCalc= next}
+    | MinMsg msg ->
+        fRegular Components.Minions.update msg cs.Mins Storage.minio.Save
+            MinMsg
+            <| fun model next -> {model with Mins= next}
 
 
 let update (msg:Msg) (model:Model) =
@@ -294,6 +312,8 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
             Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
         | EventCalc ->
             Components.EventCalc.view theme cs.EventCalc (EvtMsg >> dispatch)
+        | Minions ->
+            Components.Minions.view cs.Mins (MinMsg >> dispatch)
     with ex ->
         div [] [
             unbox ex.Message
@@ -312,6 +332,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 | Damage -> Fa.Solid.Biohazard
                 | Enchanting -> Fa.Solid.HatWizard
                 | EventCalc -> Fa.Solid.CalendarAlt
+                | Minions -> Fa.Solid.Bone
 
 
             {| c= x; icon = icon |}

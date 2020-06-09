@@ -97,42 +97,36 @@ let getUrl =
         let url = sprintf "https://api.hypixel.net/Skyblock/profiles?key=%s&uuid=%s" k u
         url
 
-// let fetchUuid useProxy (name,tsOpt) =
-//     // https://api.mojang.com/users/profiles/minecraft/<username>?at=<timestamp>
-//     let qs = tsOpt |> Option.map (sprintf "?at=%s") |> Option.defaultValue ""
-//     let url = sprintf "https://api.mojang.com/users/profiles/minecraft/%s%s" name qs
-//     if useProxy then
-//         fetchHerokuProxy url
-//     else
-//         CorsPromise.request {
-//             Method= GET
-//             Url= url
-//             Headers= Map.empty
-//             Body= None
-//         }
+type UnixTimestamp = int64
+
+type ApiResult =
+    abstract member success:bool
+type StatBlock =
+    abstract member highest_critical_damage: float option
+    abstract member kills: float option
+    abstract member kills_zombie: float option
+    abstract member kills_zombie_villager: float option
+    abstract member deaths: float option
+    abstract member deaths_zombie: float option
+    abstract member kills_skeleton: float option
 
 
-// let fetchHypixelProfile useProxy (key,name) =
-//     let url = sprintf "http://api.hypixel.net/player?key=%s&name=%s" key name
-//     if useProxy then
-//         fetchHerokuProxy url
-//     else
-//         CorsPromise.request {
-//             Method= GET
-//             Url= url
-//             Headers= Map.empty
-//             Body= None
-//         }
+type CoopInvitation =
+    abstract member timestamp: UnixTimestamp
 
-// // https://api.hypixel.net/Skyblock/profiles?key=[KEY]&uuid=[UUID]
-// let fetchSkyblockProfile useProxy (key,uuid) =
-//     let url = sprintf "https://api.hypixel.net/Skyblock/profiles?key=%s&uuid=%s" key uuid
-//     if useProxy then
-//         fetchHerokuProxy url
-//     else
-//         CorsPromise.request {
-//             Method= GET
-//             Url= url
-//             Headers= Map.empty
-//             Body= None
-//         }
+type Member =
+    abstract last_save: UnixTimestamp
+    abstract inv_armor: obj
+    abstract coop_invitation: CoopInvitation
+    abstract first_join: UnixTimestamp
+    abstract first_join_hub: int // this is a small number, not sure what it is
+    abstract member stats: StatBlock option
+type HySkyProfile =
+    abstract member profile_id: string with get
+    abstract member members: obj[]
+    // grapes,cucumber,kiwi, coconut, etc.
+    abstract member cute_name: string
+
+type HySkyProfileResult =
+    abstract member success:bool
+    abstract member profiles: HySkyProfile[]

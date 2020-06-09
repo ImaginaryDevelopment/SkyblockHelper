@@ -12,6 +12,7 @@ open Shared.Helpers
 open CodeHelpers.HypixelApi
 open CodeHelpers.FableHelpers
 open Components.SharedComponents
+open SkyblockHelper
 
 let useProxy = true
 
@@ -21,34 +22,92 @@ type Model = {
     Uuid: string
     Loading: bool
     SkyblockProfile: string
+    Error: string
+    SelectedProfile: string
+    Profiles: HySkyProfile[]
 }
+// I haven't needed a non-auto encoder or decoder anywhere else in the project
+module Decoding =
+    open Thoth.Json
+    let hypSkyDecoder: Decoder<HySkyProfile> = Decode.object (fun get ->
+        let cutename = get.Required.Field "cute_name" Decode.string
+        let members = get.Required.Field "members" (Decode.array Decode.string)
+        let profileid = get.Optional.Field "profile_id" Decode.string |> Option.defaultValue null
+        {
+            new HySkyProfile with
+                member __.cute_name = cutename
+                member __.members = unbox <| box members 
+                member __.profile_id = profileid
+        }
+    )
+
+    let modelDecoder:Decoder<Model> = Decode.object (fun get ->
+        let getString name =
+            get.Optional.Field name Decode.string |> Option.defaultValue ""
+        let profiles = get.Optional.Field "Profiles" (Decode.array hypSkyDecoder)
+        { 
+            Key= getString "Key"
+            Name= getString "Name"
+            Uuid= getString "Uuid"
+            Loading= false
+            SkyblockProfile= getString "SkyblockProfile"
+            Error= getString "Error"
+            SelectedProfile= getString "SelectedProfile"
+            Profiles= profiles |> Option.defaultValue Array.empty
+        }
+    )
 
 type Msg =
     | FetchRequested
     | ClearRequested
     | ResultLoaded of Result<string,exn>
+    | ProfileFetched of Result<string,exn>
     | KeyChange of string
     | NameChange of string
     | UuidChange of string
     | SkyblockDataChange of string
     | SkyblockProfileLoadClick
+    | SkyblockProfileSelected of string
 
 let init initOverride : Model * Cmd<Msg> =
-    initOverride |> Option.defaultValue {Key="";Name="";Uuid="";Loading=false;SkyblockProfile=""}, Cmd.none
+    initOverride |> Option.defaultValue {Key="";SelectedProfile="";Name="";Uuid="";Loading=false;Error="";SkyblockProfile="";Profiles=Array.empty}, Cmd.none
+
+module Peeking =
+    open Fable.Core
+    open Fable.Core.JsInterop
+
+    let validateProfileModel x =
+        try
+            let x = Fable.Core.JS.JSON.parse x
+            if not x?success then
+                Error "Message indicated failure"
+            elif isNull x?profiles then
+                Error "profiles property not found"
+            else
+                x?profiles
+                |> Seq.cast<HySkyProfile>
+                |> Array.ofSeq
+                |> Ok
+        with ex ->
+            Error ex.Message
 
 
 let update msg model : Model * Cmd<Msg> =
         match msg with
         | SkyblockDataChange x ->
             {model with SkyblockProfile= x}, Cmd.none
+        | SkyblockProfileSelected x ->
+            {model with SelectedProfile= x}, Cmd.none
         | SkyblockProfileLoadClick ->
             model.SkyblockProfile
             |> Option.ofValueString
-            |> Option.map(Resolver.deserialize)
+            |> Option.map Peeking.validateProfileModel
             |> function
-                | Some x ->
+                | Some (Ok x) ->
                     Fable.Core.JS.console.log("skyblock profile", x)
-                    model, Cmd.none
+                    {model with Profiles= x}, Cmd.none
+                | Some (Error x) ->
+                    {model with Error = x}, Cmd.none
                 | None ->
                     eprintfn "Failed to deserialize skyblock profile"
                     model, Cmd.none
@@ -59,10 +118,20 @@ let update msg model : Model * Cmd<Msg> =
             {model with Key=x}, Cmd.none
         | NameChange x ->
             {model with Name = x}, Cmd.none
+        | ProfileFetched(Ok x) ->
+            match Peeking.validateProfileModel x with
+            | Ok profiles ->
+                {model with Profiles= profiles}, Cmd.none
+            | Error msg ->
+                {model with Error= msg}, Cmd.none
+
         | ResultLoaded(Ok x) ->
             eprintfn "ApiLoaded?"
             Fable.Core.JS.console.log("ApiLoaded?",x)
+            let x = Fable.Core.JS.JSON.parse x
             {model with Loading = false}, Cmd.none
+
+        | ProfileFetched(Error ex)
         | ResultLoaded(Error ex) ->
             eprintfn "ApiLoaded?"
             Fable.Core.JS.console.log("ApiLoaded?",ex.Message)
@@ -76,7 +145,7 @@ let update msg model : Model * Cmd<Msg> =
             else
                 match model.Key, model.Uuid, model.Name with
                 | ValueString k, ValueString u, _ ->
-                    let f = Cmd.OfPromise.either (fetch useProxy) (getUrl (ApiReqType.HypixelSkyblockProfile(k,u))) (Ok >> Msg.ResultLoaded) ( Error >> Msg.ResultLoaded)
+                    let f = Cmd.OfPromise.either (fetch useProxy) (getUrl (ApiReqType.HypixelSkyblockProfile(k,u))) (Ok >> Msg.ProfileFetched) ( Error >> Msg.ProfileFetched)
                     {model with Loading=true}, f
 
                 | ValueString k, _, ValueString n ->
@@ -137,6 +206,16 @@ let view (model:Model) (dispatch:Msg -> unit) =
             [Textarea.DefaultValue model.SkyblockProfile][]
         apiButton "Load Skyblock Profile" Msg.SkyblockProfileLoadClick
         hr []
+        SelectOpt<HySkyProfile>
+            {|
+                    active= model.Profiles |> Seq.tryFind(fun profile -> profile.cute_name = model.SelectedProfile)
+                    addedClasses= List.empty
+                    emptyLabel= "Select Profile..."
+                    items= List.ofArray model.Profiles
+                    map=(fun profile -> profile.cute_name)
+                    parse=(fun x -> model.Profiles |> Seq.tryFind(fun p -> p.cute_name = x))
+                    onChange=(Option.iter (fun profile -> Msg.SkyblockProfileSelected profile.cute_name |> dispatch))
+            |}
 
         ul [](
             let lia (title:string) (link:string) =

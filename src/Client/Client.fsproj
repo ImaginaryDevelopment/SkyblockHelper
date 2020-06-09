@@ -9,6 +9,7 @@
     <Compile Include="../Shared/Shared.fs" />
     <Compile Include="Version.fs" />
     <Compile Include="AppDomain/Skyblock.fs" />
+    <Compile Include="AppDomain/Accessories.fs" />
     <Compile Include="AppDomain/Collections/Collections.fs" />
     <Compile Include="AppDomain/Collections/Weapons.fs" />
     <Compile Include="AppDomain/Collections/Armor.fs" />

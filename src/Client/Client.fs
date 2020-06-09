@@ -55,11 +55,16 @@ type ComponentStates = {
     EventCalc: Components.EventCalc.Model
     Mins: Components.Minions.Model
 }
-
+type UserInfo = {
+    Username:string
+    Uuid:string
+    CuteName: string
+}
 type State = {
     ActiveTab: Component
     ShowTextMenus: bool
     Theme: string
+    UserInfo: UserInfo option
 }
 
 type Model = {
@@ -172,7 +177,7 @@ let subcomponents x =
 
 module Storage =
     open BrowserStorage
-    let app : StorageAccess<State> =  BrowserStorage.StorageAccess.createStorage "AppState"
+    let app : StorageAccess<State> = BrowserStorage.StorageAccess.createStorage "AppState"
     let api = BrowserStorage.StorageAccess.createStorage "AppState_Api"
     let baz = BrowserStorage.StorageAccess.createStorage "AppState_Bazaar"
     let brew = BrowserStorage.StorageAccess.createStorage "AppState_Brew"
@@ -181,6 +186,7 @@ module Storage =
     let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
     let evt = StorageAccess.createStorage "AppState_Evt"
     let minio = StorageAccess.createStorage "AppState_Minions"
+    Fable.Core.JS.console.log("api", api.Get());
 
 
 let init () =
@@ -209,7 +215,7 @@ let init () =
             | Some x -> x
             | None ->
                 eprintfn "init: no stored site"
-                { ActiveTab= Bazaar; ShowTextMenus= false; Theme= ""}
+                { ActiveTab= Bazaar; ShowTextMenus= false; Theme= ""; UserInfo=None}
     if debug then Fable.Core.JS.console.log("starting up app with state", Resolver.serialize app)
 
     let model =

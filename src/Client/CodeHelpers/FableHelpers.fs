@@ -56,16 +56,39 @@ let inline toGlobal (name:string) value =
 let pascal (x:string) =
     (string x.[0]).ToUpper() + x.[1..]
 
-let formatNumber (num:float,places: int option): string =
+let formatNumber (places: int option) (num:float) : string =
+    let formatCommas (x:string) =
+        // printfn "Format %s" x
+        [0 .. x.Length - 1]
+        |> List.map(fun i -> string x.[i])
+        // |> List.skip 1
+        |> List.rev
+        |> List.mapi (fun i c ->
+            if (i+1) % 3 = 0 then
+                sprintf ",%s" c
+            else
+                c
+        )
+        |> List.rev
+        |> String.concat ""
+        |> String.trim1 [","]
     let places = Option.defaultValue 2 places
     if isNull <| box num then "null"
     elif isNaN num then "NaN"
     else
         match num.ToString("n" + string places) with
-        | Before "." b & After "." aft ->
-            b + "." + aft
-        | x -> x
+        | x when not <| x.Contains "." && x.Length > 3 ->
+                formatCommas x
 
+        | Before "." b & After "." aft when b.Length > 3 ->
+            formatCommas b
+            |> fun b -> sprintf "%s.%s" b aft
+        | x ->
+            printfn "formatNumber x"
+            x
+
+let formatInt (num:int) : string =
+    formatNumber (Some 0) (float num)
 
 let getAttrValue name (x:Browser.Types.HTMLElement) =
     if not <| isNull x.attributes then

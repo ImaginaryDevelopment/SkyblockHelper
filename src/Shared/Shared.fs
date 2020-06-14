@@ -8,10 +8,18 @@ module String =
         | x when System.String.IsNullOrWhiteSpace x -> false
         | _ -> true
 
+    let toCharArray (x:string) =
+        x.ToCharArray()
+
     let trim =
         function
         | null | "" -> ""
         | x -> x.Trim()
+
+    let trim1 (delimiter:string list) =
+        function
+        | null | "" -> ""
+        | x -> x.Trim(delimiter |> Array.ofList |> Array.collect toCharArray)
 
     let tryAfter delimiter (x:string) =
         if not <| isValueString delimiter then
@@ -28,7 +36,7 @@ module String =
         match x.IndexOf delimiter with
         | x when x < 0 ->
             None
-        | i -> Some x.[ 0..i ]
+        | i -> Some x.[ 0..i - 1 ]
 
     // let after delimiter (x:string) =
     //     if not <| isValueString delimiter then

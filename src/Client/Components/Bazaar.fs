@@ -34,7 +34,7 @@ module Internal =
                                 td[][
                                     match x.value, x.div with
                                     | Some v, Some d when d > 0 ->
-                                        yield unbox <| formatNumber(float v / float d, Some 2)
+                                        yield unbox <| formatNumber (Some 2) (float v / float d)
                                     | _ -> ()
 
                                 ]

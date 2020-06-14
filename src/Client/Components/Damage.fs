@@ -256,7 +256,9 @@ module AccessoryComponent =
         // use BaseName
         OwnedAccessories: Map<string,OwnedAccessory>
     }
+
     type UpdateFormValue = string*Rarity
+
     type UpdateFormArgs = {
         BaseName:string 
         // selectedFormName
@@ -334,7 +336,6 @@ module AccessoryComponent =
                                 let v = (f.Name,f.Rarity)
                                 option [Resolver.Serialize v |> box<string> |> Value ][
                                     str <| sprintf "%s - %A" f.Name f.Rarity
-
                                 ]
                             )
                     ]

@@ -230,6 +230,46 @@ module MinionProduction =
 
 module Leveling =
 
+    type CountMode =
+        | Individual
+        | Cumulative
+        with
+            static member All =
+                [
+                    Individual
+                    Cumulative
+                ]
+            static member Humanize:CountMode -> string = string
+            static member Parse =
+                function
+                | EqualsI (string Individual) -> Some Individual
+                | EqualsI (string Cumulative) -> Some Cumulative
+                | _ -> None
+    type LevelMode =
+        | Xp
+        // PerLevel
+        // | Cumulative
+        | Zealots // https://hypixel-skyblock.fandom.com/wiki/Combat
+        | Candies
+        with
+            static member All =
+                [
+                    // PerLevel
+                    // Cumulative
+                    Xp
+                    Zealots
+                    Candies
+                ]
+            static member Humanize : LevelMode -> string = string
+            static member Parse =
+                function
+                | EqualsI (string Xp) -> Some Xp
+                // | EqualsI (string Cumulative) -> Some Cumulative
+                | EqualsI (string Zealots) -> Some Zealots
+                | EqualsI (string Candies) -> Some Candies
+                | _ -> None
+
+
     let getXpTo100 =
         function
         | Common -> 5_624_785
@@ -239,7 +279,10 @@ module Leveling =
         | Legendary -> 25_353_2300
 
     let getLvlXp =
-        function
+        fun lvl -> lvl + 1
+        >> min 100
+        >> max 2
+        >> function
         | 2 -> [100;175;275;440;660]
         | 3 -> [ 110;190;300;490;730 ]
         | 4 -> [ 120;210;330;540;800 ]
@@ -339,7 +382,7 @@ module Leveling =
         | 98 -> [ 333_700;516_700;791_700;1_191_700;1_616_700 ]
         | 99 -> [ 357_700;561_700;861_700;1_286_700;1_746_700 ]
         | 100 -> [ 383_700;611_700;936_700;1_386_700;1_886_700 ]
-        | _ -> failwith "Invalid level target"
+        | x -> failwithf "Invalid level target %i" x
         >> (fun lvls r ->
             match r with
             | Common -> lvls.[0]
@@ -350,6 +393,8 @@ module Leveling =
         )
 
     type Model = {
+        LevelMode: LevelMode option
+        CountMode: CountMode option
         Lvl: int
         Rarity: Rarity
         Candies: Candy list
@@ -358,8 +403,12 @@ module Leveling =
     type Msg =
         | LvlChange of int
         | RarityChange of Rarity
+        | LevelModeChange of LevelMode
+        | CountModeChange of CountMode
 
     let init = {
+        LevelMode= Some LevelMode.Xp
+        CountMode= Some CountMode.Individual
         Lvl= 1
         Rarity= Epic
         Candies= List.empty
@@ -371,11 +420,19 @@ module Leveling =
             {model with Lvl= i}, Cmd.none
         | RarityChange r ->
             {model with Rarity= r}, Cmd.none
+        | LevelModeChange lm ->
+            {model with LevelMode= Some lm}, Cmd.none
+        | CountModeChange cm ->
+            {model with CountMode= Some cm}, Cmd.none
 
     let view (model:Model) dispatch =
+        let inline c15 attr children = Fulma.Column.column ( Fulma.Column.Option.Width(Fulma.Screen.All, Fulma.Column.Is1)::attr) children
         section [] [
             Fulma.Columns.columns [][
-                Fulma.Column.column [] [
+                c15 [] [
+                    Fulma.Label.label[][
+                        str "Rarity"
+                    ]
                     Fulma.Select.select [] [
                         Select {|
                                 active= model.Rarity
@@ -387,26 +444,165 @@ module Leveling =
                         |}
                     ]
                 ]
-                Fulma.Column.column [] [
+                c15 [] [
+                    Fulma.Label.label[][
+                        str "Level"
+                    ]
                     Fulma.Input.number [
                         Fulma.Input.Option.Props [ Min 1;Max 100 ]
-                        Fulma.Input.DefaultValue <| string  model.Lvl
+                        Fulma.Input.DefaultValue <| string (min model.Lvl 100 |> max 1)
+                        Fulma.Input.OnChange (getEvValue >> tryParseInt >> Option.iter( Msg.LvlChange >> dispatch))]
+                ]
+                c15 [Fulma.Column.Props [Title "Candies already used"]] [
+                    Fulma.Label.label[][ str "Candies" ]
+                    Fulma.Input.number [
+                        Fulma.Input.Option.Props [ Min 1;Max 10 ]
+                        Fulma.Input.DefaultValue <| string model.Candies
                         Fulma.Input.OnChange (getEvValue >> tryParseInt >> Option.iter( Msg.LvlChange >> dispatch))]
                 ]
             ]
-            Fulma.Container.container [][
-                match model.Lvl with
-                | x when x > 0 && x < 101 ->
-                    yield
-                        [ model.Lvl + 1 .. 100 ]
-                        |> List.sumBy(fun i -> getLvlXp i model.Rarity) 
-                        // |> fun x -> formatNumber(float x, Some 0)
-                        // |> fun x -> System.String.Format("{0:#,##0}",x)
-                        |> fun x -> x.ToString("n0")
-                        |> sprintf "Xp to 100 : %s" 
-                        |> str 
-                | _ -> ()
 
+            Fulma.Container.container [][
+                Fulma.Notification.notification [][
+                    ul[][
+                        let currentXp =
+                            [2..model.Lvl ] |> List.sumBy(fun i -> getLvlXp (i-1) model.Rarity)
+                        let xpTo100 =
+                            if model.Lvl < 100 then
+                                [ model.Lvl .. 99 ]
+                                |> List.sumBy(fun i -> getLvlXp i model.Rarity)
+                            else 0
+                        printfn "Lvl: %i - Current:%i -> to 100 current: %i" model.Lvl currentXp xpTo100
+                        yield li [] [
+                            yield
+                                currentXp
+                                |> float
+                                |> formatNumber (Some 0)
+                                |> sprintf "Current Cumulative Xp: %s"
+                                |> str
+                        ]
+                        match model.Lvl with
+                        | x when x > 0 && x < 101 ->
+                            // xp to next level
+                            yield
+                                getLvlXp model.Lvl model.Rarity
+                                |> formatInt
+                                |> sprintf "Xp to %i - %s" (model.Lvl+1)
+                                |> str
+                                |> List.singleton
+                                |> li []
+                            if xpTo100 > 0 && model.Lvl < 99 then
+                                yield
+                                    xpTo100
+                                    |> formatInt
+                                    |> sprintf "Xp to 100 : %s" 
+                                    |> str
+                                    |> List.singleton
+                                    |> li []
+                            // if x < 100 || model.Rarity <> Legendary then
+                            //     // needs work
+                            //     yield
+                            //         [ model.Lvl + 1 .. 100 ]
+                            //         |> List.sumBy(fun i -> getLvlXp i Legendary)
+                            //         |> formatInt
+                            //         |> sprintf "Xp to Legendary 100: %s"
+                            //         |> str
+                            //         |> List.singleton
+                            //         |> li []
+
+
+                                ()
+                        | _ -> ()
+
+                        // xp to level 100 as same rarity
+                        // xp to level 100 as legendary
+                    ]
+                ]
+            ]
+            Fulma.Container.container [][
+                yield Select {|
+                                active= model.LevelMode |> Option.orElse init.LevelMode |> Option.defaultValue LevelMode.Xp
+                                addedClasses= List.empty
+                                items= LevelMode.All
+                                map= LevelMode.Humanize
+                                parse= LevelMode.Parse
+                                onChange= (Msg.LevelModeChange >> dispatch)
+                |}
+                yield Select {|
+                                active= model.CountMode |> Option.orElse init.CountMode|> Option.defaultValue CountMode.Individual
+                                addedClasses= List.empty
+                                items= CountMode.All
+                                map= CountMode.Humanize
+                                parse= CountMode.Parse
+                                onChange= (Msg.CountModeChange >> dispatch)
+                |}
+                let titleColumn x = Fulma.Column.column [][ str x ]
+                let createTable title f = [
+                    yield Fulma.Heading.h2 [] [ str title ] // "Xp Per Level"
+                    yield Fulma.Columns.columns[][
+                        titleColumn "Level"
+                        titleColumn "Common"
+                        titleColumn "Uncommon"
+                        titleColumn "Rare"
+                        titleColumn "Epic"
+                        titleColumn "Legendary"
+                    ]
+                    yield! [1..100]
+                    |> List.map(fun i ->
+                        Fulma.Columns.columns[][
+                                    yield Fulma.Column.column [][
+                                        str <| sprintf "Level %i" i
+                                    ]
+                                    yield!
+                                        Rarity.All
+                                        |> List.rev
+                                        |> List.map(fun r ->
+                                            f r i
+                                            // match i with
+                                            // | 1 -> 0
+                                            // | x -> getLvlXp (i-1) r
+                                            // |> formatInt
+                                            |> str
+                                            |> List.singleton
+                                            |> Fulma.Column.column []
+                                        )
+                        ]
+                    )
+                ]
+                yield!
+                    match model.LevelMode, model.CountMode with
+                    | _, None
+                    | None, _ ->
+                        printfn "modes: %A, %A" model.LevelMode model.CountMode
+                        [div[][ str "No level mode found"]]
+                    | Some Xp, Some Individual ->
+                        createTable "Xp Per Level" (fun r i ->
+                                                match i with
+                                                | 1 -> 0
+                                                | _ -> getLvlXp (i-1) r
+                                                |> formatInt
+                        )
+                    | Some Xp, Some Cumulative ->
+                        createTable "Levels by Accumulated Xp" (fun r i ->
+                            match i with
+                            | 1 -> 0
+                            | _ ->
+                                [2..i]
+                                |> List.sumBy (fun i -> getLvlXp (i-1) r)
+                            |> formatInt
+                        )
+                    | Some Zealots, Some Individual ->
+                        createTable "Levels by Zealot kills(@40 xp per)" (fun r i ->
+                            match i with
+                            | 1 -> "0"
+                            | _ ->
+                                let x = getLvlXp (i-1) r
+                                float x / 40.0
+                                |> formatNumber (Some 0)
+
+                        )
+
+                    | Some l, Some c -> [ div [] [str <| sprintf "not implemented %A,%A" l c]]
             ]
         ]
 

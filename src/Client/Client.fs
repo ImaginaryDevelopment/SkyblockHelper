@@ -31,6 +31,7 @@ type Component =
     | Enchanting
     | EventCalc
     | Minions
+    | Pets
 
     with
         static member All =
@@ -43,6 +44,7 @@ type Component =
                 Minions
                 Collections
                 Damage
+                Pets
             ]
 
 type ComponentStates = {
@@ -54,6 +56,7 @@ type ComponentStates = {
     Enchanting: Components.Enchanting.Model
     EventCalc: Components.EventCalc.Model
     Mins: Components.Minions.Model
+    Pets: Components.Pets.Leveling.Model
 }
 
 type State = {
@@ -79,6 +82,7 @@ type ComponentMsg =
     | EnchMsg of Components.Enchanting.Msg
     | EvtMsg of Components.EventCalc.Msg
     | MinMsg of Components.Minions.Msg
+    | PetMsg of Components.Pets.Leveling.Msg
 
 type Msg =
     | TabChange of Component
@@ -166,6 +170,14 @@ let subcomponents x =
             Update= Components.Minions.update
         }
         |> ignore
+    | Pets ->
+        {
+            Wrapper= PetMsg >> CMsg
+            Init= InitType.Method Components.Pets.Leveling.init
+            View= fun _ -> Components.Pets.Leveling.view
+            Update= Components.Pets.Leveling.update
+        }
+        |> ignore
 
 
 #endif
@@ -181,6 +193,7 @@ module Storage =
     let ench = BrowserStorage.StorageAccess.CreateStorage "AppState_Ench"
     let evt = StorageAccess.CreateStorage "AppState_Evt"
     let minio = StorageAccess.CreateStorage "AppState_Minions"
+    let pet = StorageAccess.CreateStorage "AppState_Pet"
 
 let init () =
     let inline mapCmd title (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init fOverride : 't * Cmd<Msg> =
@@ -202,6 +215,7 @@ let init () =
     let ench,cmd = mapCmd "EnchantingInit" (EnchMsg>>CMsg) cmd Components.Enchanting.init Storage.ench.Get
     let evt,cmd = mapCmd "EventInit" (EvtMsg>>CMsg) cmd Components.EventCalc.init Storage.evt.Get
     let minio, cmd = mapCmd "MinsInit" (MinMsg>>CMsg) cmd Components.Minions.init Storage.minio.Get
+    let pet, cmd = mapCmd "PetsInit" (PetMsg>>CMsg) cmd Components.Pets.Leveling.init Storage.pet.Get
     let app =
         Storage.app.Get()
         |> function
@@ -222,6 +236,7 @@ let init () =
                             Enchanting= ench
                             EventCalc= evt
                             Mins= minio
+                            Pets= pet
             }
         }
     // Fable.Core.JS.console.log("starting up app with comstate", model.ComponentStates)
@@ -268,6 +283,10 @@ let updateC msg cs =
         fRegular Components.Minions.update msg cs.Mins Storage.minio.Save
             MinMsg
             <| fun model next -> {model with Mins= next}
+    | PetMsg msg ->
+        fRegular Components.Pets.Leveling.update msg cs.Pets Storage.pet.Save
+            PetMsg
+            <| fun model next -> {model with Pets= next}
 
 
 let update (msg:Msg) (model:Model) =
@@ -312,6 +331,8 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
             Components.EventCalc.view theme cs.EventCalc (EvtMsg >> dispatch)
         | Minions ->
             Components.Minions.view {Theme=theme} cs.Mins (MinMsg >> dispatch)
+        | Pets ->
+            Components.Pets.Leveling.view cs.Pets (PetMsg >> dispatch)
     with ex ->
         div [] [
             unbox ex.Message
@@ -330,7 +351,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 | Damage -> Fa.Solid.Biohazard
                 | Enchanting -> Fa.Solid.HatWizard
                 | EventCalc -> Fa.Solid.CalendarAlt
-                | Minions -> Fa.Solid.Bone
+                | Minions -> Fa.Solid.HardHat
+                | Pets -> Fa.Solid.Bone
 
 
             {| c= x; icon = icon |}

@@ -57,6 +57,7 @@ module Helpers =
 
     let flip f x y = f y x
 
+
     let (|ValueString|_|) =
         function
         | x when String.isValueString x -> Some x
@@ -68,6 +69,12 @@ module Helpers =
                 Some ()
             else None
         | _ -> None
+    let equalsIStr (item:'t) (x:string) =
+        match x with
+        | EqualsI (string (box item)) -> Some item
+        | _ -> None
+
+    let (|EqualsIStr|_|) (x:'t) = equalsIStr x
 
     let (|After|_|) delimiter x =
         String.tryAfter delimiter x

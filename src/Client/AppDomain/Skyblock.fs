@@ -90,12 +90,8 @@ type Rarity =
             | EqualsI (string Common) -> Some Common
             | _ -> None
 
-type Candy =
-    | Simple
-    | Great
-    | Superb
 
-type Minion = {Resource: Resource; Level:int; Candies: int}
+type Minion = {Resource: Resource; Level:int}
 
 type DmgStat =
     // | WeaponDmg

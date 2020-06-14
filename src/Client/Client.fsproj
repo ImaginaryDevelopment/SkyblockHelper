@@ -13,6 +13,7 @@
     <Compile Include="AppDomain/Collections/Collections.fs" />
     <Compile Include="AppDomain/Collections/Weapons.fs" />
     <Compile Include="AppDomain/Collections/Armor.fs" />
+    <Compile Include="AppDomain/Collections/Pets.fs" />
     <Compile Include="AppDomain/BrewingReference.fs" />
     <Compile Include="AppDomain/Damage.fs" />
     <Compile Include="AppDomain/EnchantingReference.fs" />
@@ -34,6 +35,7 @@
     <Compile Include="Components/Enchanting.fs" />
     <Compile Include="Components/EventCalc.fs" />
     <Compile Include="Components/Minions.fs" />
+    <Compile Include="Components/Pets.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

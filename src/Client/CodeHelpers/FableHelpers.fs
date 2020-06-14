@@ -76,16 +76,29 @@ let formatNumber (places: int option) (num:float) : string =
     if isNull <| box num then "null"
     elif isNaN num then "NaN"
     else
-        match num.ToString("n" + string places) with
-        | x when not <| x.Contains "." && x.Length > 3 ->
-                formatCommas x
+        let input = string num
+        // printfn "Testing input %s %.2f" input num
+        match input with
+        | Before "." b & After "." aft ->
+            // printfn "Found before and after: '%s', '%s'" b aft
+            b, if places > 0 then Some aft else None
+        | _ -> input, None
+        |> function // fix up commas
+            | b, aft when b.Length > 3 ->
+                formatCommas b, aft
+            | b,aft -> b,aft
+        |> function
+            | b, None -> if places > 0 then sprintf "%s.%s" b <| String.replicate places "0" else b
+            | b, Some aft ->
+                if places > aft.Length then
+                    "0"
+                    |> String.replicate (places - aft.Length)
+                    |> sprintf "%s.%s" b
+                elif places < aft.Length then
+                    aft.[0.. places - 1]
+                    |> sprintf "%s.%s" b
+                else sprintf "%s.%s" b aft
 
-        | Before "." b & After "." aft when b.Length > 3 ->
-            formatCommas b
-            |> fun b -> sprintf "%s.%s" b aft
-        | x ->
-            printfn "formatNumber x"
-            x
 
 let formatInt (num:int) : string =
     formatNumber (Some 0) (float num)

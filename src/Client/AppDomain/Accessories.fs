@@ -6,10 +6,43 @@ type Accessory = {
     Name:string
     Rarity: Rarity
     Obtained: string
+    // StatChanges: DmgStat list
+
     // Effect: string
     // not all upgrades use the lower version for creating another in the line
     UpgradedForm: Accessory option
-}
+} with
+    static member TryFindBase name (x:Accessory list) =
+        let rec findBase (acc:Accessory) =
+            if acc.Name = name then
+                Some acc
+            else
+                match acc.UpgradedForm |> Option.bind findBase with
+                | Some _ -> Some acc
+                | None -> None
+        x
+        |> List.tryPick findBase
+
+    static member Unfold (x:Accessory) =
+        let rec getForms (x:Accessory) =
+            [
+                yield x
+                yield! x.UpgradedForm |> Option.map getForms |> Option.defaultValue List.empty
+            ]
+        getForms x
+
+    static member TryFindForm name (x:Accessory) =
+        Accessory.Unfold x
+        |> List.tryFind(fun acc -> acc.Name = name)
+
+    static member GetUpgradeNames (x:Accessory) =
+        let rec getUpgradeNames (x:Accessory) =
+            [
+                yield x.Name, x.Rarity
+                yield! x.UpgradedForm |> Option.map getUpgradeNames |> Option.defaultValue List.empty
+            ]
+        getUpgradeNames x
+
 
 type Reforge =
     | Demonic
@@ -22,6 +55,20 @@ type Reforge =
     | Superior
     | Unpleasant
     | Zealous
+    with 
+        static member All =
+            [
+                Demonic
+                Forceful
+                Gentle
+                Godly
+                Hurtful
+                Keen
+                Strong
+                Superior
+                Unpleasant
+                Zealous
+            ]
 
 let private noUpgrade name r obt =
     {
@@ -29,6 +76,7 @@ let private noUpgrade name r obt =
         Rarity= r
         Obtained= obt
         UpgradedForm= None
+        // StatChanges= List.empty
     }
 
 let private threeChain nameBase (r1,o1) (r2,o2) (r3,o3) =

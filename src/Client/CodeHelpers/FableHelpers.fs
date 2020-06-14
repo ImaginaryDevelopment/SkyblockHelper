@@ -2,6 +2,7 @@ module CodeHelpers.FableHelpers
 open Fable.Core.JS
 open Fable.Core.JsInterop
 open Shared
+open Shared.Helpers
 open Elmish
 open Fable.Core
 open Thoth.Json
@@ -33,10 +34,10 @@ type Resolver =
             coders
             |> Extra.withCustom mapEncoder mapDecoder
         coders
-    static member serialize(x:'t, [<Inject>] ?resolver: ITypeResolver<'t>): string =
+    static member Serialize(x:'t, [<Inject>] ?resolver: ITypeResolver<'t>): string =
         let extra = Resolver.MapEncoder Extra.empty
         Thoth.Json.Encode.Auto.toString(2,x,extra=extra,resolver=resolver.Value)
-    static member deserialize<'t>(x:string, [<Inject>] ?resolver: ITypeResolver<'t>) : 't option =
+    static member Deserialize<'t>(x:string, [<Inject>] ?resolver: ITypeResolver<'t>) : 't option =
         let extra = Resolver.MapEncoder Extra.empty
         match Thoth.Json.Decode.Auto.fromString(x, extra= extra, resolver= resolver.Value) with
         | Ok v -> Some v
@@ -59,7 +60,12 @@ let formatNumber (num:float,places: int option): string =
     let places = Option.defaultValue 2 places
     if isNull <| box num then "null"
     elif isNaN num then "NaN"
-    else num.ToString("n" + string places)
+    else
+        match num.ToString("n" + string places) with
+        | Before "." b & After "." aft ->
+            b + "." + aft
+        | x -> x
+
 
 let getAttrValue name (x:Browser.Types.HTMLElement) =
     if not <| isNull x.attributes then

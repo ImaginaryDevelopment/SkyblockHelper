@@ -1,5 +1,7 @@
 namespace SkyblockHelper
 
+open Shared.Helpers
+
 type Slayer =
     | Zombie
     | Spider
@@ -78,8 +80,40 @@ type Rarity =
                 Uncommon
                 Common
             ]
+        static member Humanize (x:Rarity)= string x
+        static member Parse x =
+            match x with
+            | EqualsI (string Legendary) -> Some Legendary
+            | EqualsI (string Epic) -> Some Epic
+            | EqualsI (string Rare) -> Some Rare
+            | EqualsI (string Uncommon) -> Some Uncommon
+            | EqualsI (string Common) -> Some Common
+            | _ -> None
 
-type Minion = {Resource: Resource; Level:int}
+type Candy =
+    | Simple
+    | Great
+    | Superb
+
+type Minion = {Resource: Resource; Level:int; Candies: int}
+
+type DmgStat =
+    // | WeaponDmg
+    | CritChance
+    | CritDmg
+    | Strength
+    with
+        static member All =
+            [
+                // WeaponDmg
+                CritChance
+                CritDmg
+                Strength
+            ]
+
+type GameStat =
+    | Dmg of DmgStat
+
 // module Minions =
 //     [<Erase>] // maybe this would work?
 //     type Minion =

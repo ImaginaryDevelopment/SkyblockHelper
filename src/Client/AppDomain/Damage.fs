@@ -193,16 +193,4 @@ type WeaponBonus = // TODO: figure out if this covers weapon bonuses
                 MoreDmg
             ]
 
-type DmgStat =
-    // | WeaponDmg
-    | CritChance
-    | CritDmg
-    | Strength
-    with
-        static member All =
-            [
-                // WeaponDmg
-                CritChance
-                CritDmg
-                Strength
-            ]
+

@@ -23,7 +23,6 @@
     <Compile Include="UIHelpers/BFulma.fs" />
     <Compile Include="Generated.fs" />
     <Compile Include="Components/SharedComponents.fs" />
-    <Compile Include="Components/ProfileMgmt.fs" />
     <Compile Include="Components/APIs.fs" />
     <Compile Include="Components/Bazaar.fs" />
     <Compile Include="Components/Brewing.fs" />

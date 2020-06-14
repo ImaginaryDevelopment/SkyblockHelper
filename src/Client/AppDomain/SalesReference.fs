@@ -14,11 +14,6 @@ type Category = Farming | Mining | Combat | WoodsOrFishes with
             eprintfn "Category.FromString could not interpret %s" x
             None
 
-// export let referenceDivs = [
-//   crm("Unpacked Ice",0.111111)
-//   crm("Enchanted Paper", 640)
-//   crm("Enchanted Bread", 60)
-// ]
 type ItemForm = {
   Label:string
   Div:int option
@@ -56,16 +51,16 @@ type Preconfiguration = {
         ]}
     static member MakeDual (name,category,?emult) =
         let emult = Option.defaultValue 160 emult 
-        {Name=name;Category=category;Forms =[
+        {Name=name;Category=category;Forms= [
             ItemForm.CreateEmpty name 1
             ItemForm.CreateEmpty (sprintf "Enchanted %s" name) emult
         ]}
 
 // type Suffixes = {plain?:string,enchanted?:string,eblock?:string}
 let makeStandardMining (name:string,plainsuffix:string option) : Preconfiguration  = {
-  Name=name
-  Category=Category.Mining
-  Forms=ItemForm.MakeStandards(name,{|blockname=None;plainsuffix=plainsuffix|})
+  Name= name
+  Category= Category.Mining
+  Forms= ItemForm.MakeStandards(name,{|blockname=None;plainsuffix=plainsuffix|})
 }
 
 let preconfigurations = [

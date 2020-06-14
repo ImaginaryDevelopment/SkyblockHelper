@@ -69,7 +69,7 @@ module Internal =
     let reference =
       div [][
           pre [][
-            unbox <| Resolver.serialize potions
+            unbox <| Resolver.Serialize potions
           ]
       ]
 
@@ -98,7 +98,7 @@ module Internal =
             ]
           with e ->
             div [][
-                unbox <| Resolver.serialize e
+                unbox <| Resolver.Serialize e
             ]
 
     [<RequireQualifiedAccess>]
@@ -218,10 +218,6 @@ type Model = {
   ShowDebuffs: bool
 }
 
-type Props = {
-  Theme:string
-}
-
 type Msg =
     | TabChange of Subtab
     | BrewChangeMsg of BrewChange
@@ -255,7 +251,7 @@ let update msg (model:Model) =
         | BrewChange.SplashMod x ->
             lensTPot (fun prev -> {prev with Splash= x}), Cmd.none
 
-let view (props:Props) state (dispatch:Msg -> unit) =
+let view (props:ThemeProps) state (dispatch:Msg -> unit) =
     let stdTabs = {|    names= Subtab.All
                         active= Some state.Subtab
                         map= string

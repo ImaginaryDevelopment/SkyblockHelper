@@ -13,9 +13,6 @@ type Model = {
     Subtab: CollectionType
     ComponentStates: ComponentState
 }
-type Props = {
-    Theme:string
-}
 
 type CMessages=
     | WMsg of Weapons.Msg

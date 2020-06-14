@@ -13,11 +13,29 @@ module String =
         | null | "" -> ""
         | x -> x.Trim()
 
-    let after delimiter (x:string) =
+    let tryAfter delimiter (x:string) =
         if not <| isValueString delimiter then
             failwithf "no delimiter passed"
-        let i = x.IndexOf(delimiter)
-        x.[i+delimiter.Length..]
+        match x.IndexOf delimiter with
+        | x when x < 0 ->
+            None
+        | i -> Some x.[i+delimiter.Length..]
+
+
+    let tryBefore delimiter (x:string) =
+        if not <| isValueString delimiter then
+            failwithf "no delimiter passed"
+        match x.IndexOf delimiter with
+        | x when x < 0 ->
+            None
+        | i -> Some x.[ 0..i ]
+
+    // let after delimiter (x:string) =
+    //     if not <| isValueString delimiter then
+    //         failwithf "no delimiter passed"
+    //     let i = x.IndexOf(delimiter)
+    //     x.[i+delimiter.Length..]
+
 
 // did not appear to work
 // module DU =
@@ -42,6 +60,12 @@ module Helpers =
                 Some ()
             else None
         | _ -> None
+
+    let (|After|_|) delimiter x =
+        String.tryAfter delimiter x
+
+    let (|Before|_|) delimiter x =
+        String.tryBefore delimiter x
 
     let inline tryParse f x =
         match f x with

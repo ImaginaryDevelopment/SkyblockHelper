@@ -11,6 +11,7 @@ type Potion = {
   IsDebuff: bool
   Levels: PotionLevel list
 }
+
 // type so we can use optional and named params
 type private BrewHelpers =
     static member PotPh (name,isVanilla,lvl1source:string,?isDebuff:bool,?bases:string list): Potion =
@@ -23,7 +24,7 @@ type private BrewHelpers =
       }
 
 let potions : Potion list = [
-  { Name="Speed";IsVanilla=true; IsDebuff=false
+  { Name="Speed"; IsVanilla=true; IsDebuff=false
     Bases=[
       "Awkward"
       "Cheap Coffee"
@@ -36,7 +37,7 @@ let potions : Potion list = [
     ]
   }
   {
-    Name="Jump Boost"; IsVanilla=true;IsDebuff=false
+    Name="Jump Boost"; IsVanilla=true; IsDebuff=false
     Bases=[
 
     ]
@@ -128,7 +129,7 @@ let potions : Potion list = [
     Bases=[]
     Levels=[
       {Source="Cactus";Lvl=1}
-      {Source="Enchanted Cactus Green"; Lvl=3}
+      {Source="Enchanted Cactus Green";Lvl=3}
       {Source="Enchanted Cactus";Lvl=5}
     ]
   }

@@ -8,6 +8,10 @@ open Fulma
 open Shared
 
 type Children = ReactElement seq
+
+type ThemeProps = {
+    Theme:string
+}
 // https://bulma.io/documentation/modifiers/syntax/
 // type SizeClass = 'is-large' | 'is-small';
 type SizeClass =
@@ -24,6 +28,7 @@ type NumberInputProps = {
     Placeholder: string option
     Value: float option
 }
+
 open CodeHelpers.FableHelpers
 open Shared.Helpers
 
@@ -163,7 +168,7 @@ let Diagnostic mode (value:obj) =
         pre[][
             match mode with
             | Shown ->
-                yield unbox (Resolver.serialize value)
+                yield unbox (Resolver.Serialize value)
             | _ -> ()
         ]
     with ex ->

@@ -220,9 +220,6 @@ type Submenu = | Preconfigured | Custom | Merchants
 open Internal
 open SharedComponents.TabLink
 
-type Props = {
-    Theme:string
-}
 type Model = {
         Submenu:Submenu
         Mode: BazaarMode
@@ -263,7 +260,7 @@ let update msg (model:Model) : Model * Cmd<Msg> =
             Preconfigured.update msg model.Preconfigured
         {model with Preconfigured = cm}, cmd |> Cmd.map PreconfiguredMsg
 
-let view (props:Props) (model : Model) (dispatch : Msg -> unit) =
+let view (props:ThemeProps) (model : Model) (dispatch : Msg -> unit) =
     let result =
         let tab =
             try

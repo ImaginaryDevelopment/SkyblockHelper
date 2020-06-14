@@ -7,8 +7,15 @@ open Fable.React
 open Fable.React.Props
 open Fulma
 open AppDomain.Collections.Weapons
+open Shared
+open SharedComponents.TabLink
+open SkyblockHelper
+open CodeHelpers.FableHelpers
 
 type DictType<'k,'v when 'k : comparison> = Map<'k,'v>
+
+[<RequireQualifiedAccess>]
+type Submenu = | Custom | Accessorize
 
 let addValues ds (maps:DictType<DmgStat,float> seq) =
     maps
@@ -69,10 +76,17 @@ module CharacterComponent =
         MaxHealth: int
         Stats: DictType<DmgStat,float>
     }
+
     type Msg =
         | HealthChange of int
         | StatChange of DmgStatComponent.Msg
         | CLvlChange of int
+
+    let init = {
+            MaxHealth= 1000
+            Stats= Map[ Strength, 100.0 ]
+            CombatLevel= 10 }
+
     let update msg (model:Model) =
         match msg with
         | HealthChange i ->
@@ -83,12 +97,12 @@ module CharacterComponent =
         | CLvlChange i ->
             let next = {model with CombatLevel= i}
             next, Cmd.none
-    let view (model:Model) dispatch = 
+    let view (title:string) (model:Model) dispatch = 
         div [Class "bd-outline"][
             Heading.h2 [] [unbox "Character"]
             Heading.h3[Heading.IsSubtitle][
                 // unbox "Your stats without a weapon, pet, or pot"
-                unbox "Your stats without a weapon equipped"
+                unbox title 
             ]
             ul [][
                 li <|| numberRow "Combat Level" (Some <| float model.CombatLevel) (
@@ -185,6 +199,7 @@ module WeaponComponent =
                 ]
             ]
         ]
+
 module EnemyComponent =
     type Model = {
         MaxHealth:int
@@ -228,8 +243,177 @@ module EnemyComponent =
             ]
         ]
 
+module AccessoryComponent =
+    open AppDomain.Accessories
+    type OwnedAccessory =
+        {   FormName:string
+            Rarity:Rarity
+            Reforge: Reforge option
+        }
+
+    type Model = {
+        Character: CharacterComponent.Model
+        // use BaseName
+        OwnedAccessories: Map<string,OwnedAccessory>
+    }
+    type UpdateFormValue = string*Rarity
+    type UpdateFormArgs = {
+        BaseName:string 
+        // selectedFormName
+        FormOpt: UpdateFormValue option
+    }
+
+    type Msg =
+        | UpdateCharacter of CharacterComponent.Msg
+        | UpdateForm of UpdateFormArgs
+        | UpdateReforge of baseName:string * Reforge option
+
+    let init = {
+        Character= CharacterComponent.init
+        OwnedAccessories= Map.empty
+    }
+
+    let update msg (model:Model) =
+        let tryFindOwned name = model.OwnedAccessories |> Map.tryFind name
+
+        let inline lensOwned f =
+            {model with OwnedAccessories= f model.OwnedAccessories}
+        match msg with
+        | UpdateCharacter msg ->
+            let next, cmd = CharacterComponent.update msg model.Character
+            {model with Character= next}, cmd |> Cmd.map UpdateCharacter
+        | UpdateForm {BaseName=baseName;FormOpt=None} ->
+            lensOwned (fun oa -> oa |> Map.remove baseName), Cmd.none
+        | UpdateForm{BaseName=baseName;FormOpt=Some (selectedFormName,selectedRarity)} ->
+            let baseAcc = Accessory.TryFindBase baseName accessories
+            let actualAcc = baseAcc |> Option.bind (Accessory.TryFindForm selectedFormName)
+            let nextOwned = {
+                FormName= actualAcc |> Option.map(fun aa -> aa.Name) |> Option.defaultValue selectedFormName
+                Rarity= actualAcc |> Option.map(fun aa -> aa.Rarity) |> Option.defaultValue selectedRarity
+                Reforge= tryFindOwned baseName |> Option.bind(fun x -> x.Reforge)
+            }
+            lensOwned (fun oa -> oa |> Map.add baseName nextOwned ), Cmd.none
+
+        | UpdateReforge (baseName,r) ->
+            let baseAcc = Accessory.TryFindBase baseName accessories
+            // let actualAcc = baseAcc |> Option.bind (Accessory.TryFindForm selectedFormName)
+            match model.OwnedAccessories |> Map.tryFind baseName with
+            | Some oi ->
+                let next = model.OwnedAccessories |> Map.add baseName {oi with Reforge=r}
+                {model with OwnedAccessories= next}, Cmd.none
+            | None ->
+                eprintfn "This shouldn't happen, can't find %s" baseName
+                model, Cmd.none
+
+    let displayAccessory (ownedInfo:OwnedAccessory option) (baseAcc:Accessory) dispatch =
+        let forms = Accessory.Unfold baseAcc
+        let name = ownedInfo |> Option.map(fun oi -> oi.FormName) |> Option.defaultValue baseAcc.Name
+        let onChange =
+            getEvValue
+            >> Option.ofValueString
+            >> Option.bind Resolver.Deserialize<UpdateFormValue>
+            >> (fun x ->
+                Msg.UpdateForm{BaseName=baseAcc.Name; FormOpt= x}
+            )
+
+        Fulma.Columns.columns [][
+            Fulma.Column.column [][
+                Fulma.Select.select [][
+                    select [
+                        match ownedInfo with
+                        | Some oi ->
+                            let x = (oi.FormName,oi.Rarity)
+                            yield DefaultValue (Resolver.Serialize x)
+                        | None -> ()
+                        yield OnChange (onChange>> dispatch)
+                    ][
+                        yield option [Value ""][ str <| sprintf "No %s or higher owned" baseAcc.Name]
+                        yield!
+                            forms
+                            |> List.map(fun f ->
+                                let v = (f.Name,f.Rarity)
+                                option [Resolver.Serialize v |> box<string> |> Value ][
+                                    str <| sprintf "%s - %A" f.Name f.Rarity
+
+                                ]
+                            )
+                    ]
+                ]
+            ]
+            Fulma.Column.column [Column.Option.Props [Title baseAcc.Name]][
+                Fulma.Select.select [][
+                    select [
+                        match ownedInfo with
+                        | Some {FormName= fn;Reforge= Some rfg} ->
+                            let x = (fn,rfg)
+                            yield DefaultValue (Resolver.Serialize x)
+                        | _ -> ()
+                        yield OnChange (onChange>> dispatch)
+                    ] [
+                        yield option [Value ""][str "No Reforge..."]
+                        yield!
+                            Reforge.All
+                            |> List.map(fun rfg ->
+                                option [string rfg|> box<string> |> Value][
+                                    str <| string rfg
+                                ]
+                            )
+                    ]
+                ]
+            ]
+        ]
+
+
+    let accview (props:ThemeProps) (model:Model) dispatch =
+        div [][
+            Section.section [Section.Option.CustomClass props.Theme][
+                (
+                    try
+                        CharacterComponent.view
+                            "Character stats without accessories or weapon equipped (armor included for now)"
+                            model.Character (Msg.UpdateCharacter >> dispatch)
+                    with ex ->
+                        pre [][
+                            unbox ex.Message
+                        ]
+                )
+            ]
+            Section.section [] [
+                let rarityCounts =
+                    model.OwnedAccessories
+                    |> Map.toSeq
+                    |> Seq.map(fun (_,oa) ->
+                        oa.Rarity
+                    )
+                    |> Seq.groupBy id
+                    |> Seq.map(fun (g,items) -> g, items |> Seq.length)
+                    |> List.ofSeq
+                let countRarity r = 
+                    rarityCounts |> List.tryFind (fst >> (=) r) |> Option.map snd |> Option.defaultValue 0
+                let l,e,r,u,c = countRarity Legendary, countRarity Epic, countRarity Rare, countRarity Uncommon, countRarity Common
+                yield Fulma.Heading.h2 [][
+                    str <| sprintf "Owned - %i Legendary, %i Epic, %i Rare, %i Uncommon, %i Common" l e r u c
+
+                ]
+                yield! 
+                    accessories
+                    |> List.map (fun acc ->
+                        let forms = Accessory.Unfold acc
+                        let ownedInfo =
+                            forms
+                            |> Seq.tryPick(fun accForm ->
+                                model.OwnedAccessories
+                                |> Map.tryFind acc.Name
+                            )
+                        displayAccessory ownedInfo acc dispatch
+                )
+            ]
+        ]
+
 type Model = {
-    Character: CharacterComponent.Model
+    Submenu: Submenu
+    CustomCharacter: CharacterComponent.Model
+    AccessoryModel: AccessoryComponent.Model
     Enemy: EnemyComponent.Model
     WeaponComponent:WeaponComponent.Model
     // no pet, no weapon, no pots
@@ -237,19 +421,25 @@ type Model = {
     Potion: DictType<DmgStat,float>
 }
 
-type Msg =
-    | WeaponChange of WeaponComponent.Msg
+type CustomMsg =
     | CharacterChange of CharacterComponent.Msg
+    | WeaponChange of WeaponComponent.Msg
     | EnemyChange of EnemyComponent.Msg
 
-let init initOverride =
+type SubMsg =
+    | CustomChange of CustomMsg
+    | AccChange of AccessoryComponent.Msg
+
+type Msg =
+    | ComponentChange of SubMsg
+    | SubmenuChange of Submenu
+
+let init initOverride : Model * Cmd<Msg> =
     initOverride
     |> Option.defaultValue {
-        Character= {
-            MaxHealth= 1000
-            Stats= Map[ Strength, 100.0 ]
-            CombatLevel= 10
-        }
+        Submenu= Submenu.Custom
+        AccessoryModel= AccessoryComponent.init
+        CustomCharacter= CharacterComponent.init
         Enemy= {
             MaxHealth= 13000
             CurrentHealth= 13000
@@ -260,30 +450,40 @@ let init initOverride =
         Potion= Map.empty
     }, Cmd.none
 
-let update msg model =
+let update (msg:Msg) model:Model * Cmd<Msg> =
     match msg with
-    |WeaponChange msg ->
-        let next,cmd = WeaponComponent.update msg model.WeaponComponent
-        {model with WeaponComponent= next}, cmd |> Cmd.map WeaponChange
-    | CharacterChange msg ->
-        let next,cmd = CharacterComponent.update msg model.Character
-        {model with Character= next}, cmd |> Cmd.map CharacterChange
-    | EnemyChange msg ->
-        let next,cmd = EnemyComponent.update msg model.Enemy
-        {model with Enemy= next}, cmd |> Cmd.map EnemyChange
+    | Msg.ComponentChange (AccChange msg) ->
+        let next, cmd = AccessoryComponent.update msg model.AccessoryModel
+        {model with AccessoryModel= next}, cmd |> Cmd.map (AccChange >> ComponentChange)
+    | Msg.ComponentChange (CustomChange msg) ->
+        match msg with
+        |WeaponChange msg ->
+            let next,cmd = WeaponComponent.update msg model.WeaponComponent
+            {model with WeaponComponent= next}, cmd |> Cmd.map WeaponChange
+        | CharacterChange msg ->
+            let next,cmd = CharacterComponent.update msg model.CustomCharacter
+            {model with CustomCharacter= next}, cmd |> Cmd.map CharacterChange
+        | EnemyChange msg ->
+            let next,cmd = EnemyComponent.update msg model.Enemy
+            {model with Enemy= next}, cmd |> Cmd.map EnemyChange
+        |> function
+            | m,c ->
+                m, c |> Cmd.map (CustomChange >> ComponentChange)
+    | SubmenuChange sm ->
+        {model with Submenu= sm}, Cmd.none
 
 module Internal =
-    let dmgView model =
-        let cl = model.Character.CombatLevel
-        let stats = [model.Character.Stats;model.WeaponComponent.Stats]
+    let dmgView (model:Model) =
+        let cl = model.CustomCharacter.CombatLevel
+        let stats = [model.CustomCharacter.Stats;model.WeaponComponent.Stats]
         let clv = getCombatLevelValue cl
         let e =
             getEValue 
                 AppDomain.Collections.Weapons.WeaponType.Sword
-                (float model.Character.MaxHealth)
+                (float model.CustomCharacter.MaxHealth)
                 (float model.Enemy.MaxHealth, float model.Enemy.CurrentHealth, model.Enemy.Type)
                 model.WeaponComponent.Enchants
-        let wb = 0.0 // getWbValue 
+        let wb = 0.0 // getWbValue
         let str = addValues Strength stats
         let x = getBasedmg (float model.WeaponComponent.Damage) str
         let m = getMult cl e wb
@@ -312,12 +512,12 @@ module Internal =
             ]
         ]
 
-let view (props:obj) (model:Model) dispatch =
+let customview props model (dispatch:CustomMsg -> unit) =
     div [] [
         Section.section [][
             (
                 try
-                    CharacterComponent.view model.Character (Msg.CharacterChange >> dispatch)
+                    CharacterComponent.view "Your stats without a weapon equipped" model.CustomCharacter (CharacterChange >> dispatch)
                 with ex ->
                     pre [][
                         unbox ex.Message
@@ -327,7 +527,7 @@ let view (props:obj) (model:Model) dispatch =
         Section.section [][
             (
                 try
-                    WeaponComponent.view model.WeaponComponent (Msg.WeaponChange >> dispatch)
+                    WeaponComponent.view model.WeaponComponent (WeaponChange >> dispatch)
                 with ex ->
                     pre [][
                         unbox ex.Message
@@ -337,7 +537,7 @@ let view (props:obj) (model:Model) dispatch =
         Section.section [][
             (
                 try
-                    EnemyComponent.view model.Enemy (Msg.EnemyChange >> dispatch)
+                    EnemyComponent.view model.Enemy (EnemyChange >> dispatch)
                 with ex ->
                     pre [][
                         unbox ex.Message
@@ -345,4 +545,20 @@ let view (props:obj) (model:Model) dispatch =
             )
         ]
         Section.section [][ Internal.dmgView model ]
+    ]
+
+let view (props:ThemeProps) (model:Model) (dispatch: Msg -> unit) =
+    let tab = 
+        match model.Submenu with
+        | Submenu.Custom ->
+            customview props model (SubMsg.CustomChange >> Msg.ComponentChange >> dispatch)
+        | Submenu.Accessorize ->
+            AccessoryComponent.accview props model.AccessoryModel (SubMsg.AccChange >> Msg.ComponentChange >> dispatch)
+    div [] [
+        TabContainer (Option.ofValueString props.Theme) None (
+            [Submenu.Accessorize;Submenu.Custom] |> List.map(fun sm ->
+                TabTextLink (string sm) (string model.Submenu |> Some) (fun _ -> Msg.SubmenuChange sm |> dispatch)
+            )
+        )
+        div [Class props.Theme][ tab ]
     ]

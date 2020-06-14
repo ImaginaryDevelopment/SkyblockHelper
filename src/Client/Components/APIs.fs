@@ -44,7 +44,7 @@ let update msg model : Model * Cmd<Msg> =
         | SkyblockProfileLoadClick ->
             model.SkyblockProfile
             |> Option.ofValueString
-            |> Option.map(Resolver.deserialize)
+            |> Option.map(Resolver.Deserialize)
             |> function
                 | Some x ->
                     Fable.Core.JS.console.log("skyblock profile", x)

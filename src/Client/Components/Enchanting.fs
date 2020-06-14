@@ -83,9 +83,7 @@ let update msg model =
                         model.Struck
                         |> Map.add et [name]
         {model with Struck = next}, Cmd.none
-type EnchantingProps = {
-    Theme: string
-}
+
 module Internal =
     let trStrike struck =
         tr[Class (if struck then "strikethrough" else "")]

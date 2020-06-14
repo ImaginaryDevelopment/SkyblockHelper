@@ -162,7 +162,7 @@ let subcomponents x =
         {
             Wrapper= MinMsg >> CMsg
             Init= InitType.Method Components.Minions.init
-            View= fun _ -> Components.Minions.view
+            View= Components.Minions.view
             Update= Components.Minions.update
         }
         |> ignore
@@ -172,16 +172,15 @@ let subcomponents x =
 
 module Storage =
     open BrowserStorage
-    let app : StorageAccess<State> =  BrowserStorage.StorageAccess.createStorage "AppState"
-    let api = BrowserStorage.StorageAccess.createStorage "AppState_Api"
-    let baz = BrowserStorage.StorageAccess.createStorage "AppState_Bazaar"
-    let brew = BrowserStorage.StorageAccess.createStorage "AppState_Brew"
-    let coll = BrowserStorage.StorageAccess.createStorage "AppState_Coll"
-    let dmg = BrowserStorage.StorageAccess.createStorage "AppState_Dmg"
-    let ench = BrowserStorage.StorageAccess.createStorage "AppState_Ench"
-    let evt = StorageAccess.createStorage "AppState_Evt"
-    let minio = StorageAccess.createStorage "AppState_Minions"
-
+    let app : StorageAccess<State> =  BrowserStorage.StorageAccess.CreateStorage "AppState"
+    let api = BrowserStorage.StorageAccess.CreateStorage "AppState_Api"
+    let baz = BrowserStorage.StorageAccess.CreateStorage "AppState_Bazaar"
+    let brew = BrowserStorage.StorageAccess.CreateStorage "AppState_Brew"
+    let coll = BrowserStorage.StorageAccess.CreateStorage "AppState_Coll"
+    let dmg = BrowserStorage.StorageAccess.CreateStorage "AppState_Dmg"
+    let ench = BrowserStorage.StorageAccess.CreateStorage "AppState_Ench"
+    let evt = StorageAccess.CreateStorage "AppState_Evt"
+    let minio = StorageAccess.CreateStorage "AppState_Minions"
 
 let init () =
     let inline mapCmd title (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init fOverride : 't * Cmd<Msg> =
@@ -210,7 +209,7 @@ let init () =
             | None ->
                 eprintfn "init: no stored site"
                 { ActiveTab= Bazaar; ShowTextMenus= false; Theme= ""}
-    if debug then Fable.Core.JS.console.log("starting up app with state", Resolver.serialize app)
+    if debug then Fable.Core.JS.console.log("starting up app with state", Resolver.Serialize app)
 
     let model =
         {   AppState = app
@@ -235,7 +234,6 @@ let updateC msg cs =
         |> save
         |> ignore
         fmodel cs next, cmd |> Cmd.map fmsg
-
 
     match msg with
     | ApiMsg msg ->
@@ -307,13 +305,13 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
         | Collections ->
             Components.Collections.Component.view () cs.Collections (CollMsg >> dispatch)
         | Damage ->
-            Components.Damage.view () cs.Damage (DmgMsg >> dispatch)
+            Components.Damage.view {Theme=theme} cs.Damage (DmgMsg >> dispatch)
         | Enchanting ->
             Components.Enchanting.view {Theme=theme} cs.Enchanting (EnchMsg >> dispatch)
         | EventCalc ->
             Components.EventCalc.view theme cs.EventCalc (EvtMsg >> dispatch)
         | Minions ->
-            Components.Minions.view cs.Mins (MinMsg >> dispatch)
+            Components.Minions.view {Theme=theme} cs.Mins (MinMsg >> dispatch)
     with ex ->
         div [] [
             unbox ex.Message

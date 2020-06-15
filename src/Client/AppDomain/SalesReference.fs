@@ -315,6 +315,7 @@ let preconfigurations = [
     ]
   }
   Preconfiguration.MakeDual("Magma Cream",Combat)
+
   Preconfiguration.MakeDual("Oak",WoodsOrFishes)
   Preconfiguration.MakeDual("Spruce", WoodsOrFishes)
   Preconfiguration.MakeDual("Birch", WoodsOrFishes)
@@ -335,6 +336,10 @@ let preconfigurations = [
   Preconfiguration.MakeDual("Pufferfish",WoodsOrFishes)
   Preconfiguration.MakeDual("Prismarine Shard",WoodsOrFishes)
   Preconfiguration.MakeDual("Prismarine Crystals",WoodsOrFishes)
+  Preconfiguration.MakeDual("Clay", WoodsOrFishes)
+  Preconfiguration.MakeDual("Lily Pad", WoodsOrFishes)
+  Preconfiguration.MakeDual("Ink Sac", WoodsOrFishes)
+  Preconfiguration.MakeDual("Sponge", WoodsOrFishes)
 ]
 type NameValue = {
     Name:string

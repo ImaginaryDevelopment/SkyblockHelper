@@ -32,15 +32,17 @@ module Internal =
                             tr[Key x.name][
                                 td[][unbox x.name]
                                 td[][
+                                    printfn "hello I'm the bazaar (%s - %A,%A)" x.name x.value x.div
                                     match x.value, x.div with
                                     | Some v, Some d when d > 0 ->
-                                        yield unbox <| formatNumber (Some 2) (float v / float d)
+                                        let value = v / float d
+                                        let formatted = formatNumber (Some 2) value
+                                        printfn "%.1f,%i -> %.2f value -> %s" v d value formatted
+                                        yield unbox <| formatted
                                     | _ -> ()
-
                                 ]
                             ]
                         )
-
                     )
                 ]
             ]
@@ -100,8 +102,15 @@ module Internal =
 
         let view props model dispatch =
             let forms = preconfigurations |> List.find(fun x -> x.Name = model.Selected) |> fun x -> x.Forms
-            let getValueKey lbl = model.Selected + "."+ lbl
-            let getKeyValue lbl = model.Values |> Map.tryFind (getValueKey lbl)
+            // the idea was to store items as base name . form name, but storage wasn't updated
+            // also not sure what the justification was
+            let getValueKey lbl = lbl // model.Selected + "."+ lbl
+            let getKeyValue lbl =
+                let vk = getValueKey lbl
+                let result = model.Values |> Map.tryFind vk
+                printfn "getKeyValue from %i keys for %s(%s) -> %A" model.Values.Count lbl vk result
+                result
+
             let formTypes = preconfigurations |> Seq.map(fun x -> x.Category) |> Seq.distinct
             let items =
                 model.Category
@@ -133,7 +142,7 @@ module Internal =
 
                 select [
                     Class "select"
-                    Value model.Selected 
+                    Value model.Selected
                     OnChange (getTargetValue("Preconfigured.item.selected") >> Option.defaultValue "" >> Msg.ItemChange>>dispatch)
                     ][
                         yield option [Value ""][unbox "Item"]

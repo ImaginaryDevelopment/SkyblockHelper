@@ -302,25 +302,15 @@ module Leveling =
                     | Some x, Some Cumulative ->
                         match x with
                         | Zealots ->
-                            let killXp =
-                                match model.PetType with
-                                | None | Some Combat -> 40.0
-                                | _ -> 40.0 * 0.25
-                            // sprintf "Levels by Zealot kills(@%s xp per)" (formatNumber (Some 0) killXp) , killXp
-                            getXp Combat 40.0 "Levels by Zealot kills(@%s xp per)" 
+                            getXp Combat 40.0 "Levels by Zealot kills(@%s xp per)"
                         | Pumpkins ->
-                            // let xp =
-                            //     match model.PetType with
-                            //     | None | Some Farming -> 4.5
-                            //     | _ -> 4.5 * 0.25
                             getXp Farming 4.5 "Levels by Pumpkin farming(@%s xp per)"
                         | Xp -> "Levels by Accumulated Xp", 1.0
                         | Candies -> "Levels by Accumulated Candy", float candyValue
                         |> fun (t,d) -> createCumTable t d
                     | Some x, Some Individual ->
                         match x with
-                        | Zealots ->
-                            getXp Combat 40.0"Levels by Zealot kills(@%s xp per)"
+                        | Zealots -> getXp Combat 40.0 "Levels by Zealot kills(@%s xp per)"
                         | Xp -> "Xp Per Level",1.0
                         | Pumpkins -> getXp Farming 4.5 "Levels by Pumpkin farming(@%s xp per)"
                         | Candies ->

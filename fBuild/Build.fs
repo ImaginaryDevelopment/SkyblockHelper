@@ -47,6 +47,7 @@ Target.create "Bundle" (fun _ ->
         "client", dotnet "fable -o output -s --run webpack -p" clientPath
     ] |> runParallel
 )
+
 #if FARMER
 Target.create "Azure" (fun _ ->
     let web = webApp {

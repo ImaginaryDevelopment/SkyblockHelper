@@ -7,6 +7,7 @@
 // Dependencies. Also required: core-js, fable-loader, fable-compiler, @babel/core,
 // @babel/preset-env, babel-loader, sass, sass-loader, css-loader, style-loader, file-loader, resolve-url-loader
 var path = require('path');
+var fs = require('fs');
 var webpack = require('webpack');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
@@ -61,11 +62,12 @@ module.exports = {
     // with the code because the MiniCssExtractPlugin will extract the
     // CSS in a separate files.
     entry: {
-        app: resolve(CONFIG.fsharpEntry)
+        app: [CONFIG.fsharpEntry, CONFIG.cssEntry]
     },
     // Add a hash to the output file name in production
     // to prevent browser caching if code changes
     output: {
+        // path: path.join(__dirname, CONFIG.outputDir)
         path: resolve(CONFIG.outputDir),
         publicPath: '/',
         filename: isProduction ? '[name].[hash].js' : '[name].js'
@@ -95,6 +97,7 @@ module.exports = {
     resolve: {
         // See https://github.com/fable-compiler/Fable/issues/1490
         symlinks: false
+        // modules: [resolve("node_modules")]
     },
     // Configuration for webpack-dev-server
     devServer: {

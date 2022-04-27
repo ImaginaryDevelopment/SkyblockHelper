@@ -8,11 +8,11 @@ open Fable.FontAwesome
 open Shared
 
 let horizontalInput labelTxt input =
-    div [Class "field is-horizontal"][
-        div [Class "field-label is-normal"] [label [Class "label"][str labelTxt]]
-        div [Class "field-body"][
-            div [Class "field"][
-                p [Class "control"][
+    div [Class "field is-horizontal"] [
+        div [Class "field-label is-normal"] [label [Class "label"] [str labelTxt]]
+        div [Class "field-body"] [
+            div [Class "field"] [
+                p [Class "control"] [
                     input
                 ]
             ]

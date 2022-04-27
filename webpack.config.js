@@ -126,10 +126,6 @@ module.exports = {
                 ],
             },
             {
-                test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)(\?.*)?$/,
-                use: ['file-loader']
-            },
-            {
                 test: /\.js$/,
                 enforce: "pre",
                 use: ['source-map-loader']

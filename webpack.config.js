@@ -41,9 +41,9 @@ var CONFIG = {
 
 // If we're running the webpack-dev-server, assume we're in development mode
 var isProduction = !process.argv.find(v => v.indexOf('webpack-dev-server') !== -1);
-var environment = isProduction ? 'production' : 'development';
-process.env.NODE_ENV = environment;
-console.log('Bundling for ' + environment + '...');
+var mode = isProduction ? 'production' : 'development';
+process.env.NODE_ENV = mode;
+console.log('Bundling for ' + mode + '...');
 
 // The HtmlWebpackPlugin allows us to use a template for the index.html page
 // and automatically injects <script> or <link> tags for generated bundles.
@@ -66,11 +66,14 @@ module.exports = {
     // to prevent browser caching if code changes
     output: {
         path: resolve(CONFIG.outputDir),
+        publicPath: '/',
         filename: isProduction ? '[name].[hash].js' : '[name].js'
     },
-    mode: environment,
+    mode: mode,
     devtool: isProduction ? 'source-map' : 'eval-source-map',
     optimization: {
+        runtimeChunk: "single",
+        moduleIds: "deterministic",
         splitChunks: {
             chunks: 'all'
         },
@@ -85,24 +88,24 @@ module.exports = {
     plugins: isProduction ?
         commonPlugins.concat([
             new MiniCssExtractPlugin({ filename: 'style.[name].[hash].css' }),
-            new CopyWebpackPlugin({patterns: [{ from: resolve(CONFIG.assetsDir) }]}),
+            new CopyWebpackPlugin({ patterns: [{ from: resolve(CONFIG.assetsDir) }]}),
         ])
-        : commonPlugins.concat([
-            new webpack.HotModuleReplacementPlugin(),
-        ]),
+        : commonPlugins,
     resolve: {
         // See https://github.com/fable-compiler/Fable/issues/1490
         symlinks: false
     },
     // Configuration for webpack-dev-server
     devServer: {
-        publicPath: '/',
-        contentBase: resolve(CONFIG.assetsDir),
+        static: {
+            directory: resolve(CONFIG.assetsDir),
+            publicPath: '/'
+        },
         host: '0.0.0.0',
         port: CONFIG.devServerPort,
         proxy: CONFIG.devServerProxy,
         hot: true,
-        inline: true
+        historyApiFallback: true
     },
     module: {
         rules: [
@@ -120,7 +123,6 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)(\?.*)?$/,
-                // loader: 'file-loader',
                 use: ['file-loader']
             },
             {
@@ -133,5 +135,8 @@ module.exports = {
 };
 
 function resolve(filePath) {
-    return path.isAbsolute(filePath) ? filePath : path.join(__dirname, filePath);
+    var result = path.isAbsolute(filePath) ? filePath : path.join(__dirname, filePath);
+    console.log('"' + filePath + '" => resolved to : "' + result + '"');
+
+    return result;
 }

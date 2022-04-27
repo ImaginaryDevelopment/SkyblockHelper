@@ -17,6 +17,17 @@ let sharedTestsPath = if hasShared then Path.getFullName $"{baseDir}/tests/Share
 let serverTestsPath = if hasServer then Path.getFullName $"{baseDir}/tests/Server" else null
 let clientTestsPath = Path.getFullName $"{baseDir}/tests/Client"
 
+[
+    sharedPath
+    serverPath
+    clientPath
+]
+|> List.filter(System.String.IsNullOrEmpty >> not)
+|> List.iter(fun path ->
+    if System.IO.Directory.Exists path |> not then
+        eprintfn "Directory '%s' not found from '%s' ('%s')" path System.Environment.CurrentDirectory (Path.getFullName System.Environment.CurrentDirectory)
+        failwith "bad build.fs"
+)
 
 Target.create "Clean" (fun _ ->
     Shell.cleanDir deployPath

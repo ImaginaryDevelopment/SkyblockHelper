@@ -82,7 +82,7 @@ module Helpers =
     let (|Before|_|) delimiter x =
         String.tryBefore delimiter x
 
-    let inline tryParse f x =
+    let inline tryParse f (x: string) =
         match f x with
         | true, x -> Some x
         | _ -> None

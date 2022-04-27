@@ -1,4 +1,5 @@
 module CodeHelpers.FableHelpers
+#line 2
 open Fable.Core.JS
 open Fable.Core.JsInterop
 open Shared
@@ -15,7 +16,7 @@ let private debug = false
 // let parse x = JSON.parse(x)
 type Resolver =
     // type Encoder<'T> = 'T -> JsonValue
-    static member MapEncoder<'t>(coders) = // : Encoder<FSharp.Collections.Map<_,_>> =
+    static member inline MapEncoder<'t>(coders) = // : Encoder<FSharp.Collections.Map<_,_>> =
         let mapEncoder : Encoder<_> =
             fun (x:Map<string,float>) ->
             Thoth.Json.Encode.object (
@@ -34,14 +35,17 @@ type Resolver =
             coders
             |> Extra.withCustom mapEncoder mapDecoder
         coders
-    static member Serialize(x:'t, [<Inject>] ?resolver: ITypeResolver<'t>): string =
+    // static member Serialize(x:'t, [<Inject>] ?resolver: ITypeResolver<'t>): string =
+    //     let extra = Resolver.MapEncoder Extra.empty
+    //     Thoth.Json.Encode.Auto.toString(2,x,extra=extra, resolver=resolver.Value)
+    static member inline Serialize(x:'t): string =
         let extra = Resolver.MapEncoder Extra.empty
-        Thoth.Json.Encode.Auto.toString(2,x,extra=extra,resolver=resolver.Value)
-    static member Deserialize<'t>(x:string, [<Inject>] ?resolver: ITypeResolver<'t>) : 't option =
+        Thoth.Json.Encode.Auto.toString(2,x,extra=extra)
+    static member inline Deserialize<'t>(x:string) : 't option =
         let extra = Resolver.MapEncoder Extra.empty
-        match Thoth.Json.Decode.Auto.fromString(x, extra= extra, resolver= resolver.Value) with
+        match Thoth.Json.Decode.Auto.fromString(x, extra= extra) with
         | Ok v -> Some v
-        | _ -> 
+        | _ ->
             None
 
 // for debugging
@@ -134,7 +138,7 @@ let getName (ev:Browser.Types.Event) =
 let getTargetName title ev =
     try
         let name = getName ev
-        Ok name 
+        Ok name
     with ex ->
         console.error(title + ".getTargetName")
         Error ex.Message

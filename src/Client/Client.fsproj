@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
+    <DefineConstants>FABLE_COMPILER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Include="index.html" />
@@ -36,6 +37,7 @@
     <Compile Include="Components/EventCalc.fs" />
     <Compile Include="Components/Minions.fs" />
     <Compile Include="Components/Pets.fs" />
+    <Compile Include="Index.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

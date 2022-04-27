@@ -338,7 +338,6 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
         ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
-    eprintfn "Rendering index view"
     let tabs =
         Component.All
         |> List.map(fun x ->
@@ -359,7 +358,6 @@ let view (model : Model) (dispatch : Msg -> unit) =
         )
 
     let tabIt (c:Component) (icon:Fa.IconOption) =
-        eprintfn "Rendering tab view"
         TabLink {Name= string c; Active=Some <| string model.AppState.ActiveTab
                  Title= None; OnClick= fun _ -> TabChange c |> dispatch
                  Children= [

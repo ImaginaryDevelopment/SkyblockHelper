@@ -70,7 +70,9 @@ Target.create "Run" (fun _ ->
     [
         if hasServer then
             "server", dotnet "watch run" serverPath
-        "client", dotnet "fable watch -o output -s --run webpack-dev-server" clientPath
+        let clientProjPath = System.IO.Path.Combine(clientPath, "Client.fsproj")
+        let args = sprintf "fable watch \"%s\" -o output -s --run webpack-dev-server" clientProjPath
+        "client", dotnet args baseDir
     ]
     |> runParallel
 )

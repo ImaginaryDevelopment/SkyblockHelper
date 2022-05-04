@@ -18,20 +18,20 @@ module Internal =
 
     let RateDisplay (props) =
         if props.Values |> Seq.exists(fun _ -> true) then
-            div [Class "bd-outline"][
-                table [Class "table"][
-                    thead [][
-                        tr[][
-                            th [][unbox "Name"]
-                            th [][unbox <| string props.Mode]
+            div [Class "bd-outline"] [
+                table [Class "table"] [
+                    thead [] [
+                        tr [] [
+                            th [] [unbox "Name"]
+                            th [] [unbox <| string props.Mode]
                         ]
                     ]
                     tbody [](
                         props.Values
                         |> Seq.map(fun x ->
-                            tr[Key x.name][
-                                td[][unbox x.name]
-                                td[][
+                            tr [Key x.name] [
+                                td [] [unbox x.name]
+                                td [] [
                                     printfn "hello I'm the bazaar (%s - %A,%A)" x.name x.value x.div
                                     match x.value, x.div with
                                     | Some v, Some d when d > 0 ->
@@ -46,10 +46,10 @@ module Internal =
                     )
                 ]
             ]
-        else div [][]
+        else div [] []
 
     let BazaarTable (props:{| preHeaders:string list; addedHeaders:string list|}, children) =
-        let h = props.preHeaders @ ["Label";"Value";"Divisor";"Vendor"] @ props.addedHeaders 
+        let h = props.preHeaders @ ["Label";"Value";"Divisor";"Vendor"] @ props.addedHeaders
         Table {|headers=h; children=children|}
 
     module Preconfigured =
@@ -127,7 +127,7 @@ module Internal =
                         >> CategoryChange
                         >> dispatch
                     )
-            div [][
+            div [] [
                 select [    Class "select"
                             Value (
                                 match model.Category with
@@ -135,32 +135,32 @@ module Internal =
                                 | Some cat -> string cat
                             )
                             OnChange onCategoryChange
-                ][
-                    yield option [Value ""][unbox "Filter..."]
-                    yield! formTypes |> Seq.map(string >> fun x -> option [Key x; Value x][unbox x])
+                ] [
+                    yield option [Value ""] [unbox "Filter..."]
+                    yield! formTypes |> Seq.map(string >> fun x -> option [Key x; Value x] [unbox x])
                 ]
 
                 select [
                     Class "select"
                     Value model.Selected
                     OnChange (getTargetValue("Preconfigured.item.selected") >> Option.defaultValue "" >> Msg.ItemChange>>dispatch)
-                    ][
-                        yield option [Value ""][unbox "Item"]
-                        yield! items |> Seq.map(fun pre -> option [Key pre.Name;Value pre.Name][unbox pre.Name])
+                    ] [
+                        yield option [Value ""] [unbox "Item"]
+                        yield! items |> Seq.map(fun pre -> option [Key pre.Name;Value pre.Name] [unbox pre.Name])
                 ]
-                div [][
+                div [] [
                     unbox model.Selected
                     BazaarTable ({| preHeaders=List.empty;addedHeaders=List.empty |},
                         (
                             forms |> List.map(fun form ->
-                                tr [Key form.Label;Class "tr"][
+                                tr [Key form.Label;Class "tr"] [
                                     td [
                                         Title (Option.defaultValue null form.Asterisk)
                                         Class (form.Asterisk |> Option.map(fun _ -> "star") |> Option.defaultValue null |> (+) "td ")
-                                        ][
+                                        ] [
                                             unbox form.Label
                                     ]
-                                    td [][
+                                    td [] [
                                         NumberInput {
                                             Name= form.Label
                                             Value= getKeyValue form.Label
@@ -168,12 +168,12 @@ module Internal =
                                             Placeholder= None
                                         }
                                     ]
-                                    td [][
+                                    td [] [
                                         match form.Div with
                                         | Some x -> yield unbox x
                                         | None -> ()
                                     ]
-                                    td [][
+                                    td [] [
                                         match form.Vend with
                                         | Some x -> yield unbox x
                                         | None -> ()
@@ -215,8 +215,8 @@ let merchants =
                 unbox r.Name
                 ul [Class "list ul bd-outline"](
                     r.Values
-                    |> List.map(fun x -> 
-                        li [Class "list-item"][unbox (sprintf "%s - %.1f" x.Name x.Value)]
+                    |> List.map(fun x ->
+                        li [Class "list-item"] [unbox (sprintf "%s - %.1f" x.Name x.Value)]
                     )
                 )
             ]
@@ -251,7 +251,7 @@ let init overrideOpt : Model * Cmd<Msg> =
         {
             Submenu= Submenu.Preconfigured
             Mode= Sell
-            Preconfigured= Preconfigured.init None 
+            Preconfigured= Preconfigured.init None
         }, Cmd.none
     | Some x ->
         x, Cmd.none
@@ -278,15 +278,15 @@ let view (props:ThemeProps) (model : Model) (dispatch : Msg -> unit) =
                     let cm = model.Preconfigured
                     Internal.Preconfigured.view {Mode=model.Mode} cm (Msg.PreconfiguredMsg >> dispatch)
                 | Submenu.Merchants -> merchants
-                | Submenu.Custom -> div[] [unbox "Custom is not implemented"]
+                | Submenu.Custom -> div [] [unbox "Custom is not implemented"]
             with ex ->
-                pre [][
+                pre [] [
                     unbox (sprintf "Failed to render tab: %s" ex.Message)
                 ]
 
         div [] [
             select [Value model.Mode;OnChange (fun _ -> ModeChange |> dispatch)](
-                [Buy;Sell] |> List.map(string >> fun n -> option[Key n][unbox n])
+                [Buy;Sell] |> List.map(string >> fun n -> option [Key n] [unbox n])
             )
             unbox (string model.Mode)
             TabContainer (Option.ofValueString props.Theme) None (
@@ -294,7 +294,7 @@ let view (props:ThemeProps) (model : Model) (dispatch : Msg -> unit) =
                     TabTextLink (string sm) (string model.Submenu|> Some) (fun _ -> Msg.SubmenuChange sm |> dispatch)
                 )
             )
-            div [Class props.Theme][
+            div [Class props.Theme] [
                 tab
             ]
             Diagnostic Shown model

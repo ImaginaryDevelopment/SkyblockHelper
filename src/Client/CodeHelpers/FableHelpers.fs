@@ -84,7 +84,6 @@ let formatNumber (places: int option) (num:float) : string =
         // printfn "Testing input %s %.2f" input num
         match input with
         | Before "." b & After "." aft ->
-            // printfn "Found before and after: '%s', '%s'" b aft
             b, if places > 0 then Some aft else None
         | _ -> input, None
         |> function // fix up commas
@@ -97,9 +96,10 @@ let formatNumber (places: int option) (num:float) : string =
                 if places > aft.Length then
                     "0"
                     |> String.replicate (places - aft.Length)
+                    |> fun padding -> aft + padding
                     |> sprintf "%s.%s" b
                 elif places < aft.Length then
-                    aft.[0.. places - 1]
+                    aft.[0 .. places - 1]
                     |> sprintf "%s.%s" b
                 else sprintf "%s.%s" b aft
 

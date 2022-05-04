@@ -289,7 +289,6 @@ let updateC msg cs =
 
 
 let update (msg:Msg) (model:Model) =
-    eprintfn "Client update: %A" msg
     let lensState f =
         let next = f model.AppState
         Storage.app.Save (Some next)

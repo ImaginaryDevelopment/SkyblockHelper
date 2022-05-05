@@ -12,8 +12,12 @@ open Elmish
 type BazaarMode = Buy | Sell
 module Internal =
     type RateDisplayProps = {
-        Mode:BazaarMode
+        Mode: BazaarMode
         Values: {| name:string;value:float option;div:int option |} list
+    }
+    type RateCalcProps = {
+        Mode: BazaarMode
+        Inventory: {| name:string; amount: float |} list
     }
 
     let RateDisplay (props) =
@@ -47,6 +51,7 @@ module Internal =
                 ]
             ]
         else div [] []
+    let RateCalc (props) = ()
 
     let BazaarTable (props:{| preHeaders:string list; addedHeaders:string list|}, children) =
         let h = props.preHeaders @ ["Label";"Value";"Divisor";"Vendor"] @ props.addedHeaders
@@ -187,6 +192,11 @@ module Internal =
                                 Values=
                                     forms
                                     |> List.map(fun form -> {| name=form.Label;value=getKeyValue(form.Label); div=form.Div |})
+                                    |> List.sortByDescending(fun x ->
+                                        if props.Mode <> BazaarMode.Buy then
+                                            x.value
+                                        else
+                                            (x.value |> Option.map ((*) -1.)))
 
                 }
                 hr []
@@ -211,7 +221,7 @@ let merchants =
     div [](
         referenceValues
         |> List.map(fun r ->
-            div[] [
+            div [] [
                 unbox r.Name
                 ul [Class "list ul bd-outline"](
                     r.Values

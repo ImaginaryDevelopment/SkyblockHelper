@@ -18,10 +18,12 @@ type ItemForm = {
   Label:string
   Div:int option
   Vend:float option
+  IsBazaar: bool
   Asterisk:string option
 } with
-    static member CreateEmpty lbl div = {Label=lbl;Div=Some div;Vend=None;Asterisk=None}
-    static member CreateSpecial lbl = {Label=lbl;Div=None;Vend=None;Asterisk=None}
+    static member CreateEmpty lbl div = {Label=lbl;Div=Some div;Vend=None;Asterisk=None;IsBazaar=true}
+    static member CreateSpecial lbl = {Label=lbl;Div=None;Vend=None;Asterisk=None;IsBazaar=true}
+    static member NoBazaar x = {x with IsBazaar=false}
     static member MakeStandards (name,?adds:{| plainsuffix:string option; blockname:string option |}) =
         let plainSuffix =
             adds
@@ -50,7 +52,7 @@ type Preconfiguration = {
             ItemForm.CreateEmpty name 1
         ]}
     static member MakeDual (name,category,?emult) =
-        let emult = Option.defaultValue 160 emult 
+        let emult = Option.defaultValue 160 emult
         {Name=name;Category=category;Forms= [
             ItemForm.CreateEmpty name 1
             ItemForm.CreateEmpty (sprintf "Enchanted %s" name) emult
@@ -252,7 +254,7 @@ let preconfigurations = [
       ItemForm.CreateEmpty "Packed Ice" <| 9
       ItemForm.CreateEmpty "Enchanted Ice" 160
       ItemForm.CreateEmpty "Enchanted Packed Ice" <| 160 * 160
-      // use costs to determine price from 
+      // use costs to determine price from
       // {Label="Frost Walker book", isCost=true, uses="Ice",vend=""}
       // {Label="Ice Minion I", isCost=true, uses="Ice"; Vend=""}
     ]
@@ -319,7 +321,21 @@ let preconfigurations = [
   Preconfiguration.MakeDual("Oak",WoodsOrFishes)
   Preconfiguration.MakeDual("Spruce", WoodsOrFishes)
   Preconfiguration.MakeDual("Birch", WoodsOrFishes)
-  Preconfiguration.MakeDual("Dark Oak", WoodsOrFishes)
+  // Preconfiguration.MakeDual("Dark Oak", WoodsOrFishes)
+  {
+    Name="Dark Oak"
+    Category = WoodsOrFishes
+    Forms = [
+
+      ItemForm.CreateEmpty "Dark Oak" 1
+      ItemForm.CreateEmpty "Enchanted Dark Oak" 160
+      ItemForm.CreateEmpty "Boots of Growth" <| 64 * 160 * 4 |> ItemForm.NoBazaar
+      ItemForm.CreateEmpty "Helmet of Growth" <| 64 * 160 * 5 |> ItemForm.NoBazaar
+      ItemForm.CreateEmpty "Leggings of Growth" <| 64 * 160 * 7 |> ItemForm.NoBazaar
+      ItemForm.CreateEmpty "Chestplate of Growth" <| 64 * 160 * 8 |> ItemForm.NoBazaar
+      ItemForm.CreateEmpty "Armor of Growth" <| 64 * 160 * (4+5+7+8) |> ItemForm.NoBazaar
+    ]
+  }
   Preconfiguration.MakeDual("Acacia", WoodsOrFishes)
   Preconfiguration.MakeDual("Jungle", WoodsOrFishes)
   {
@@ -350,7 +366,9 @@ type VendorReference = {
   Name: string
   Values: NameValue list
 }
+
 let crv (name,value) = {Name=name;Value=value}
+
 let referenceValues = [
     {Name="Adventurer";Values=[
       crv("Rotten flesh",8.0)

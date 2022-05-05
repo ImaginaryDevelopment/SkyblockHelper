@@ -1,6 +1,5 @@
 group Client
     source https://api.nuget.org/v3/index.json
-    framework: net5.0
     storage: none
 
     nuget Fable.Browser.XMLHttpRequest
@@ -15,7 +14,6 @@ group Client
 
 group Build
     source https://api.nuget.org/v3/index.json
-    framework: net5.0
     storage: none
 
     nuget FSharp.Core

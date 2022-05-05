@@ -2,7 +2,6 @@ module Components.Collections.Weapons
 
 open AppDomain.Collections.Collection
 open AppDomain.Collections.Weapons
-open BrowserStorage
 open CodeHelpers.FableHelpers
 open Components.SharedComponents
 open Components.Collections.Shared
@@ -38,27 +37,27 @@ let init overrideOpt =
 
 module private Internal =
     let displayWeapon (item:Weapon) isChecked dispatch =
-        li [Key item.Name; Class "list-item"; Title item.Name ][
-            div [Class "columns"][
-                div[Class "column"][
+        li [Key item.Name; Class "list-item"; Title item.Name ] [
+            div [Class "columns"] [
+                div [Class "column"] [
                     input [Class "checkbox"; Type "checkbox"; Checked isChecked; OnChange (fun _ -> dispatch item.Name)]
                     unbox item.Name
                 ]
-                div[Class "column"; Title "Collection"][
+                div [Class "column"; Title "Collection"] [
                     match item.CraftType with
                     | Some(Collection null) ->
-                        yield span [Class "star";Title "unlocked at start"][unbox "craftable"]
+                        yield span [Class "star";Title "unlocked at start"] [unbox "craftable"]
                     | Some(Collection x) ->
                         yield unbox x
                     | _ -> ()
                 ]
-                div[Class "column"; Title "Slayer"][
+                div [Class "column"; Title "Slayer"] [
                     match item.CraftType with
                     | Some(Slayer(s,i)) ->
                         yield unbox <| sprintf "%A Slayer %i" s i
                     | _ -> ()
                 ]
-                div[Class "column"; Title "Upgrades"][
+                div [Class "column"; Title "Upgrades"] [
                     match item.UpgradesTo with
                     | ValueString x ->
                         yield unbox <| sprintf "upgrades to %s" x
@@ -91,8 +90,8 @@ let update msg state =
 
 let view props state dispatch =
     let makeTab wt (items:Weapon list) folded checkedItems =
-        div[] [
-            ul[](
+        div [] [
+            ul [](
                 Rarity.All
                 |> List.filter(fun r -> items |> List.map (fun x -> x.Rarity) |> List.contains r)
                 |> List.map(fun r ->
@@ -108,7 +107,7 @@ let view props state dispatch =
             makeTab Sword swords state.SwordFolded state.SwordChecked
         | Bow ->
             makeTab Bow bows state.BowFolded state.BowChecked
-    div[][
+    div [] [
         TabContainer None (Some {|
                                 names= [Sword;Bow]
                                 map= string

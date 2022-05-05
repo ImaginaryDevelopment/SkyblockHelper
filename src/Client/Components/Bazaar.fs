@@ -13,11 +13,7 @@ type BazaarMode = Buy | Sell
 module Internal =
     type RateDisplayProps = {
         Mode: BazaarMode
-        Values: {| name:string;value:float option;div:int option |} list
-    }
-    type RateCalcProps = {
-        Mode: BazaarMode
-        Inventory: {| name:string; amount: float |} list
+        Values: {| name:string;value:float option;i:int;div:int option;isBazaar:bool|} list
     }
 
     let RateDisplay (props) =
@@ -28,30 +24,64 @@ module Internal =
                         tr [] [
                             th [] [unbox "Name"]
                             th [] [unbox <| string props.Mode]
+                            if props.Values |> Seq.exists(fun x -> not x.isBazaar) then
+                                yield! (
+                                    props.Values
+                                    |> Seq.filter(fun x -> x.isBazaar)
+                                    |> Seq.map(fun v ->
+                                        th [] [ unbox <| sprintf "%A with %s" props.Mode v.name]
+                                    )
+
+                                )
                         ]
                     ]
                     tbody [](
-                        props.Values
-                        |> Seq.map(fun x ->
+                        let bazaarCount = props.Values |> Seq.filter(fun x -> x.isBazaar) |> Seq.length
+                        let sortedValues =
+                            props.Values
+                            |> List.sortByDescending(fun x ->
+                                if props.Mode <> BazaarMode.Buy then
+                                    x.value
+                                else
+                                    x.value |> Option.map ((*) -1.))
+
+                        sortedValues
+                        |> Seq.mapi (fun i x ->
                             tr [Key x.name] [
                                 td [] [unbox x.name]
                                 td [] [
-                                    printfn "hello I'm the bazaar (%s - %A,%A)" x.name x.value x.div
-                                    match x.value, x.div with
-                                    | Some v, Some d when d > 0 ->
+                                    match props.Mode, x.value, x.div with
+                                    | BazaarMode.Sell, Some v, Some d when d > 0 ->
                                         let value = v / float d
                                         let formatted = formatNumber (Some 2) value
-                                        printfn "%.1f,%i -> %.2f value -> %s" v d value formatted
                                         yield unbox <| formatted
                                     | _ -> ()
                                 ]
+                                if not x.isBazaar then
+                                    yield! (
+                                        props.Values
+                                        |> List.filter(fun v -> v.isBazaar)
+                                        |> List.map(fun v ->
+                                            match x.div, v.div with
+                                            | Some xdiv, Some vdiv ->
+
+                                                match v.value with
+                                                |  None -> td [] []
+                                                | Some value ->
+                                                    let effCount = float xdiv / float vdiv
+                                                    let sCount = formatNumber (Some 0) effCount |> string
+                                                    let effCost = effCount * float value
+                                                    let sValue = formatNumber (Some 0) effCost |> sprintf "$%s"
+                                                    td [ HTMLAttr.Title sCount] [unbox sValue]
+                                            | _ -> td [] []
+                                        )
+                                    )
                             ]
                         )
                     )
                 ]
             ]
         else div [] []
-    let RateCalc (props) = ()
 
     let BazaarTable (props:{| preHeaders:string list; addedHeaders:string list|}, children) =
         let h = props.preHeaders @ ["Label";"Value";"Divisor";"Vendor"] @ props.addedHeaders
@@ -105,13 +135,16 @@ module Internal =
                 printfn "Values next: %A" next.Values
                 next, Cmd.none
 
-        let view props model dispatch =
-            let forms = preconfigurations |> List.find(fun x -> x.Name = model.Selected) |> fun x -> x.Forms
+        let view (props:Props) model dispatch =
+            let forms =
+                preconfigurations
+                |> List.tryFind(fun x -> x.Name = model.Selected)
+                |> Option.map(fun x -> x.Forms)
+                |> Option.defaultValue List.empty
             // the idea was to store items as base name . form name, but storage wasn't updated
             // also not sure what the justification was
-            let getValueKey lbl = lbl // model.Selected + "."+ lbl
             let getKeyValue lbl =
-                let vk = getValueKey lbl
+                let vk = lbl
                 let result = model.Values |> Map.tryFind vk
                 printfn "getKeyValue from %i keys for %s(%s) -> %A" model.Values.Count lbl vk result
                 result
@@ -191,32 +224,16 @@ module Internal =
                 RateDisplay {   Mode= props.Mode
                                 Values=
                                     forms
-                                    |> List.map(fun form -> {| name=form.Label;value=getKeyValue(form.Label); div=form.Div |})
-                                    |> List.sortByDescending(fun x ->
-                                        if props.Mode <> BazaarMode.Buy then
-                                            x.value
-                                        else
-                                            (x.value |> Option.map ((*) -1.)))
+                                    |> List.mapi(fun i form ->
+                                        let kv = getKeyValue(form.Label)
+                                        {| name=form.Label;value=kv;div=form.Div; isBazaar= form.IsBazaar; i = i |})
+
 
                 }
                 hr []
                 Diagnostic DiagnosticMode.Shown model
             ]
 
-    // module Custom =
-    //     type CustomItem = {
-    //         Label:string
-    //         Value: float
-    //         Div: int
-    //         Vendor: float option
-    //     }
-    //     type Model = {
-    //         Items: CustomItem list
-    //         NewItem: CustomItem
-    //     }
-    //     type Msg = {
-    //         K
-    //     }
 let merchants =
     div [](
         referenceValues
@@ -270,7 +287,7 @@ let update msg (model:Model) : Model * Cmd<Msg> =
 
     match msg with
     | ModeChange ->
-        { model with Mode = match model.Mode with |Sell -> Buy | Buy -> Sell} , Cmd.none
+        { model with Mode = match model.Mode with | Sell -> Buy | Buy -> Sell} , Cmd.none
     | SubmenuChange sm ->
         {model with Submenu = sm}, Cmd.none
     | PreconfiguredMsg msg ->
@@ -290,6 +307,7 @@ let view (props:ThemeProps) (model : Model) (dispatch : Msg -> unit) =
                 | Submenu.Merchants -> merchants
                 | Submenu.Custom -> div [] [unbox "Custom is not implemented"]
             with ex ->
+                eprintfn "%A" ex.StackTrace
                 pre [] [
                     unbox (sprintf "Failed to render tab: %s" ex.Message)
                 ]

@@ -3,13 +3,14 @@ module AppDomain.SalesReference
 open Shared
 open Shared.Helpers
 
-type Category = Farming | Mining | Combat | WoodsOrFishes with
+type Category = Farming | Mining | Combat | WoodsOrFishes | Oddities with
     static member FromString =
         function
         | EqualsI "farming" -> Some Farming
         | EqualsI "mining" -> Some Mining
         | EqualsI "combat" -> Some Combat
         | EqualsI "WoodsOrFishes" -> Some WoodsOrFishes
+        | EqualsI "Oddities" -> Some Oddities
         | x ->
             eprintfn "Category.FromString could not interpret %s" x
             None
@@ -51,6 +52,19 @@ type Preconfiguration = {
         {Name=name;Category=category;Forms=[
             ItemForm.CreateEmpty name 1
         ]}
+    static member MakeSemiSimple catName name category =
+      {
+        Name=sprintf "%s - %s" catName name
+        Category=category
+        Forms=[
+          ItemForm.CreateEmpty name 1
+        ]
+      }
+    static member AddForm f x =
+      {
+        x with
+          Forms = x.Forms @ [f]
+      }
     static member MakeDual (name,category,?emult) =
         let emult = Option.defaultValue 160 emult
         {Name=name;Category=category;Forms= [
@@ -67,23 +81,54 @@ let makeStandardMining (name:string,plainsuffix:string option) : Preconfiguratio
 
 let preconfigurations = [
   {
-    Name="Wheat"
+    Name="Wheat - Wheat"
     Category=Farming
     Forms=[
       ItemForm.CreateEmpty "Wheat" 1
       ItemForm.CreateEmpty "Enchanted Bread" 60
       ItemForm.CreateEmpty "Hay Bale" 9
       ItemForm.CreateEmpty "Enchanted Hay Bale" (9*16*9)
+      ItemForm.CreateEmpty "Tightly-Tied Hay Bale" <| 9 * 16 * 9 * 144
+    ]
+  }
+  {
+    Name="Wheat - Seeds"
+    Category=Farming
+    Forms=[
+      ItemForm.CreateEmpty "Seeds" 1
+      ItemForm.CreateEmpty "Enchanted Seeds" 160
     ]
   }
   {
     Name="Carrot"
     Category=Farming
     Forms=[
-      {ItemForm.CreateEmpty "Carrot" 1 with  Vend= Some (float <| 3m / 7m) }
+      {ItemForm.CreateEmpty "Carrot" 1 with Vend= Some (float <| 3m / 7m) }
       ItemForm.CreateEmpty "Enchanted Carrot" 160
       ItemForm.CreateSpecial "Enchanted Carrot on a Stick"
-      ItemForm.CreateSpecial "Enchanted Golden Carrot"
+      ItemForm.CreateEmpty "Simple Carrot Candy" 576
+      {
+        Label = "Enchanted Golden Carrot"
+        Div= Some 20_512
+        Vend= None
+        IsBazaar = true
+        Asterisk = Some "Needs 28.44 Gold Ingot"
+      }
+      ItemForm.CreateEmpty "Great Carrot Candy" 51_776
+      {
+        Label = "Superb Carrot Candy"
+        Div= Some 544_064
+        Vend= None
+        IsBazaar = true
+        Asterisk = Some "Needs 682.67 Gold Ingot"
+      }
+      {
+        Label = "Ultimate Carrot Candy"
+        Div= Some 4_352_512
+        Vend= None
+        IsBazaar = true
+        Asterisk = Some "Needs 5,461.36 Gold Ingot and Ultimate Carrot Candy Upgrade"
+      }
     ]
   }
   {
@@ -91,7 +136,15 @@ let preconfigurations = [
     Category=Farming
     Forms=ItemForm.MakeStandards("Potato", {| blockname=Some "Enchanted Baked Potato";plainsuffix=None |})
   }
-  Preconfiguration.MakeDual("Pumpkin",Farming)
+  {
+    Name="Pumpkin"
+    Category=Farming
+    Forms=[
+      ItemForm.CreateEmpty "Pumpkin" 1
+      ItemForm.CreateEmpty "Enchanted Pumpkin" 160
+      ItemForm.CreateEmpty "Polished Pumpkin" <| 160 * 160
+    ]
+  }
   {
     Name="Melon"
     Category=Farming
@@ -99,6 +152,7 @@ let preconfigurations = [
       ItemForm.CreateEmpty "Melon" 1
       ItemForm.CreateEmpty "Enchanted Melon" 160
       ItemForm.CreateSpecial "Enchanted Glistening Melon"
+      // Melon 2... same name, different icon
       ItemForm.CreateEmpty "Enchanted Melon Block" <| 160*160
     ]
   }
@@ -151,7 +205,31 @@ let preconfigurations = [
       ItemForm.CreateEmpty "Enchanted Sugar Cane" <| 160*160
     ]
   }
-  Preconfiguration.MakeDual("Feather",Farming)
+  {
+    Name="Chicken & Feather - Raw Chicken"
+    Category=Farming
+    Forms=[
+      ItemForm.CreateEmpty "Raw Chicken" 1
+      ItemForm.CreateEmpty "Enchanted Raw Chicken" 160
+    ]
+  }
+  {
+    Name="Chicken & Feather - Feather"
+    Category=Farming
+    Forms=[
+      ItemForm.CreateEmpty "Feather" 1
+      ItemForm.CreateEmpty "Enchanted Feather" 160
+    ]
+  }
+  {
+    Name="Chicken & Feather - Egg"
+    Category=Farming
+    Forms=[
+      {ItemForm.CreateEmpty "Enchanted Egg" 1 with Asterisk= Some "144(16*9) eggs"}
+      {ItemForm.CreateSpecial "EnchantedCake" with Asterisk= Some "Needs Enchanted Eggs, Wheat, Milk, & Enchanted Sugar"}
+      {(ItemForm.CreateEmpty "Super Enchanted Egg" <| 16*9) with Asterisk= Some "20,736 eggs"}
+    ]
+  }
   Preconfiguration.MakeDual("Leather", Farming)
   Preconfiguration.MakeDual("Raw Beef", Farming)
   {
@@ -163,17 +241,7 @@ let preconfigurations = [
       ItemForm.CreateEmpty "Enchanted Grilled Pork" <| 160 * 160
     ]
   }
-  {
-    Name="Chicken(Egg)"
-    Category=Farming
-    Forms=[
-      {ItemForm.CreateEmpty "Enchanted Egg" 1 with Asterisk= Some "144(16*9) eggs"}
-      {ItemForm.CreateSpecial "EnchantedCake" with Asterisk= Some "Needs Enchanted Eggs, Wheat, Milk, & Enchanted Sugar"}
-      {(ItemForm.CreateEmpty "Super Enchanted Egg" <| 16*9) with Asterisk= Some "20,736 eggs"}
-      // ItemForm.CreateEmpty "Enchanted Grilled Pork" 160 * 160
-    ]
-  }
-  Preconfiguration.MakeDual("Raw Chicken", Farming)
+
   {
     Name="Cobblestone"
     Category=Mining
@@ -204,7 +272,7 @@ let preconfigurations = [
     Name="Rabbit(Feetsies)"
     Category=Farming
     Forms=[
-      ItemForm.CreateEmpty "Rabbit\"s Foot" 1
+      ItemForm.CreateEmpty "Rabbit's Foot" 1
       ItemForm.CreateEmpty "Enchanted Rabbit Foot" 160
     ]
   }
@@ -217,6 +285,7 @@ let preconfigurations = [
     ]
   }
   Preconfiguration.MakeDual("Nether Wart",Farming)
+  Preconfiguration.MakeDual("Mycelium", Farming)
   {
     Name="Coal"
     Category=Mining
@@ -229,6 +298,7 @@ let preconfigurations = [
   }
   makeStandardMining("Iron",Some "Ingot")
   makeStandardMining("Gold",Some "Ingot")
+  makeStandardMining("Diamond", None)
   makeStandardMining("Lapis",None)
   makeStandardMining("Emerald",None)
   makeStandardMining("Redstone",None)
@@ -260,7 +330,15 @@ let preconfigurations = [
     ]
   }
   Preconfiguration.MakeSimple "Netherrack" Mining
-  Preconfiguration.MakeDual("Sand", Mining)
+  Preconfiguration.MakeDual("Sand - Sand", Mining)
+  {
+    Name="Sand - Red"
+    Category=Mining
+    Forms=[
+      ItemForm.CreateEmpty "Red Sand" 1
+      ItemForm.CreateEmpty "Enchanted Red Sand" <| 160 * 160
+    ]
+  }
   Preconfiguration.MakeDual("End Stone",Mining)
   {
     Name="Snow"
@@ -271,8 +349,53 @@ let preconfigurations = [
       ItemForm.CreateEmpty "Enchanted Snow Block" <| 4 * 160
     ]
   }
+  {
+    Name="Dwarven Materials - Mithril"
+    Category=Mining
+    Forms=[
+      ItemForm.CreateEmpty "Mithril" 1
+      ItemForm.CreateEmpty "Enchanted Mithril" 160
+      ItemForm.CreateEmpty "Refined Mithril" <| 160 * 160
+    ]
+  }
+  {
+    Name="Dwarven Materials - Titanium"
+    Category=Mining
+    Forms=[
+      ItemForm.CreateEmpty "Titanium" 1
+      ItemForm.CreateEmpty "Enchanted Titanium" 160
+      ItemForm.CreateEmpty "Refined Titanium" <| 160 * 16
+    ]
+  }
+  {
+    Name="Dwarven Materials - Starfall"
+    Category=Mining
+    Forms=[ItemForm.CreateEmpty "Starfall" 1]
+  }
+  {
+    Name="Dwarven Materials - Treasurite"
+    Category=Mining
+    Forms=[ItemForm.CreateEmpty "Treasurite" 1]
+  }
+  {
+    Name="Sulphur"
+    Category=Mining
+    Forms=[
+      ItemForm.CreateEmpty "Sulphur" 1
+      ItemForm.CreateEmpty "Enchanted Sulphur" 160
+      ItemForm.CreateEmpty "Enchanted Sulphur Cube" <| 160 * 160
+    ]
+  }
   Preconfiguration.MakeDual("Rotten Flesh", Combat)
-  Preconfiguration.MakeDual("Bone", Combat)
+  {
+    Name="Bone"
+    Category=Combat
+    Forms=[
+      ItemForm.CreateEmpty "Bone" 1
+      ItemForm.CreateEmpty "Enchanted Bone" 160
+      ItemForm.CreateEmpty "Enchanted Bone Block" <| 160 * 160
+    ]
+  }
   Preconfiguration.MakeDual("String", Combat)
   {
     Name="Spider Eye"
@@ -316,12 +439,16 @@ let preconfigurations = [
       ItemForm.CreateEmpty "Enchanted Blaze Rod" <| 160 * 160
     ]
   }
+  Preconfiguration.MakeSemiSimple "Mythological" "Griffin Feather" Combat
+  Preconfiguration.MakeSemiSimple "Mythological" "Daedalus Stick" Combat
+  Preconfiguration.MakeSemiSimple "Mythological" "Ancient Claw" Combat |> Preconfiguration.AddForm (ItemForm.CreateEmpty "Enchanted Ancient Claw" 160)
+  Preconfiguration.MakeSemiSimple "Revenant Horror" "Revenant Flesh" Combat
+
   Preconfiguration.MakeDual("Magma Cream",Combat)
 
   Preconfiguration.MakeDual("Oak",WoodsOrFishes)
   Preconfiguration.MakeDual("Spruce", WoodsOrFishes)
   Preconfiguration.MakeDual("Birch", WoodsOrFishes)
-  // Preconfiguration.MakeDual("Dark Oak", WoodsOrFishes)
   {
     Name="Dark Oak"
     Category = WoodsOrFishes

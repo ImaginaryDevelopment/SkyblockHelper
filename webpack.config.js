@@ -71,7 +71,7 @@ module.exports = {
     output: {
         // path: path.join(__dirname, CONFIG.outputDir)
         path: resolve(CONFIG.outputDir),
-        publicPath: '/',
+        // publicPath: '/',
         filename: isProduction ? '[name].[hash].js' : '[name].js'
     },
     mode: isProduction ? 'production' : 'development',

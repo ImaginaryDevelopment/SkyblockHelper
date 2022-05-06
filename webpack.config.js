@@ -15,13 +15,16 @@ var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 console.log("dirname is " + __dirname);
 
+// If we're running the webpack-dev-server, assume we're in development mode
+var isProduction = !process.argv.find(v => v.indexOf('webpack-dev-server') !== -1);
+
 var CONFIG = {
     // The tags to include the generated JS and CSS will be automatically injected in the HTML template
     // See https://github.com/jantimon/html-webpack-plugin
     indexHtmlTemplate: './src/Client/index.html',
     fsharpEntry: './output/Client.js',
     cssEntry: './src/Client/style.scss',
-    outputDir: './deploy/public',
+    outputDir: isProduction ? './docs' : './deploy/public',
     assetsDir: './src/Client/public',
     devServerPort: 8080,
     // When using webpack-dev-server, you may need to redirect some calls
@@ -41,8 +44,7 @@ var CONFIG = {
 }
 
 
-// If we're running the webpack-dev-server, assume we're in development mode
-var isProduction = !process.argv.find(v => v.indexOf('webpack-dev-server') !== -1);
+
 var mode = isProduction ? 'production' : 'development';
 process.env.NODE_ENV = mode;
 console.log('Bundling for ' + mode + '...');
@@ -72,7 +74,7 @@ module.exports = {
         publicPath: '/',
         filename: isProduction ? '[name].[hash].js' : '[name].js'
     },
-    mode: mode,
+    mode: isProduction ? 'production' : 'development',
     devtool: isProduction ? 'source-map' : 'eval-source-map',
     optimization: {
         runtimeChunk: "single",

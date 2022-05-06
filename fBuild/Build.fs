@@ -18,7 +18,7 @@ let sharedPath = if hasShared then Path.getFullName $"{baseDir}/src/Shared" else
 let serverPath = if hasServer then Path.getFullName $"{baseDir}/src/Server" else null
 let clientPath = Path.getFullName $"{baseDir}/src/Client"
 let clientProjPath = System.IO.Path.Combine(clientPath, "Client.fsproj")
-let deployPath = Path.getFullName $"{baseDir}/deploy"
+let serverDeployPath = Path.getFullName $"{baseDir}/deploy"
 let sharedTestsPath = if hasShared then Path.getFullName $"{baseDir}/tests/Shared" else null
 let serverTestsPath = if hasServer then Path.getFullName $"{baseDir}/tests/Server" else null
 let clientTestsPath = Path.getFullName $"{baseDir}/tests/Client"
@@ -37,7 +37,7 @@ let clientTestsPath = Path.getFullName $"{baseDir}/tests/Client"
 
 let initTargets() =
     Target.create "Clean" (fun _ ->
-        Shell.cleanDir deployPath
+        Shell.cleanDir serverDeployPath
         run dotnet "fable clean --yes" clientPath
     )
 
@@ -48,10 +48,11 @@ let initTargets() =
     )
 
     Target.create "Bundle" (fun _ ->
+
         [
             if hasServer then
-                "server", dotnet $"publish -c Release -o \"{deployPath}\"" serverPath
-            "client", dotnet (sprintf "fable run \"%s\" -o output -- -s webpack bundle" clientProjPath) baseDir
+                "server", dotnet $"publish -c Release -o \"{serverDeployPath}\"" serverPath
+            "client", dotnet (sprintf "fable \"%s\" -o output -s --run webpack" clientProjPath) baseDir
         ] |> runParallel
     )
 

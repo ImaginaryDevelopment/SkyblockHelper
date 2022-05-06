@@ -2,6 +2,7 @@ module Client
 
 printfn "Starting up Client"
 open Elmish
+open Elmish.React
 
 #if DEBUG
 open Elmish.Debug
@@ -10,8 +11,10 @@ open Elmish.HMR
 
 Program.mkProgram Index.init Index.update Index.view
 #if DEBUG
-// |> Program.withConsoleTrace
+|> Program.withConsoleTrace
+#endif
 |> Program.withReactSynchronous "elmish-app"
-// |> Program.withDebugger
+#if DEBUG
+|> Program.withDebugger
 #endif
 |> Program.run

@@ -18,6 +18,7 @@ let sharedPath = if hasShared then Path.getFullName $"{baseDir}/src/Shared" else
 let serverPath = if hasServer then Path.getFullName $"{baseDir}/src/Server" else null
 let clientPath = Path.getFullName $"{baseDir}/src/Client"
 let clientProjPath = System.IO.Path.Combine(clientPath, "Client.fsproj")
+let clientDevOutPath = "output"
 let serverDeployPath = Path.getFullName $"{baseDir}/deploy"
 let sharedTestsPath = if hasShared then Path.getFullName $"{baseDir}/tests/Shared" else null
 let serverTestsPath = if hasServer then Path.getFullName $"{baseDir}/tests/Server" else null
@@ -35,10 +36,13 @@ let clientTestsPath = Path.getFullName $"{baseDir}/tests/Client"
         failwith "bad build.fs"
 )
 
-let initTargets() =
-    Target.create "Clean" (fun _ ->
+let initTargets finalTarget =
+    Target.create "Clean" (fun args ->
         Shell.cleanDir serverDeployPath
+        Shell.cleanDir clientDevOutPath
         run dotnet "fable clean --yes" clientPath
+        if args.Context.FinalTarget = "Bundle" then
+            Shell.cleanDir "docs"
     )
 
     Target.create "InstallClient" (fun _ ->
@@ -48,11 +52,10 @@ let initTargets() =
     )
 
     Target.create "Bundle" (fun _ ->
-
         [
             if hasServer then
                 "server", dotnet $"publish -c Release -o \"{serverDeployPath}\"" serverPath
-            "client", dotnet (sprintf "fable \"%s\" -o output -s --run webpack" clientProjPath) baseDir
+            "client", dotnet (sprintf "fable \"%s\" -o \"%s\" -s --run webpack" clientProjPath clientDevOutPath) baseDir
         ] |> runParallel
     )
 
@@ -79,7 +82,7 @@ let initTargets() =
         [
             if hasServer then
                 "server", dotnet "watch run" serverPath
-            let args = sprintf "fable watch \"%s\" -o output -s --run webpack-dev-server" clientProjPath
+            let args = sprintf "fable watch \"%s\" -o \"%s\" -s --run webpack-dev-server" clientProjPath clientDevOutPath
             "client", dotnet args baseDir
         ]
         |> runParallel
@@ -91,7 +94,7 @@ let initTargets() =
         [
             if hasServer then
                 "server", dotnet "watch run" serverTestsPath
-            "client", dotnet "fable watch -o output -s --run webpack-dev-server --config ../../webpackage.tests.config.js" clientTestsPath
+            "client", dotnet (sprintf "fable watch -o \"%s\" -s --run webpack-dev-server --config ../../webpackage.tests.config.js" clientDevOutPath) clientTestsPath
         ]
         |> runParallel
     )
@@ -102,10 +105,10 @@ let initTargets() =
 
 
     let dependencies = [
-        #if FARMER
         "Clean"
             ==> "InstallClient"
             ==> "Bundle"
+        #if FARMER
             ==> "Azure"
         #endif
         "Clean"

@@ -195,6 +195,7 @@ module Storage =
     let pet = StorageAccess.CreateStorage "AppState_Pet"
 
 let init () =
+    printfn "Starting up Index.init"
     let inline mapCmd title (wrapper: _ -> Msg) (cmd1:Cmd<Msg>) init fOverride : 't * Cmd<Msg> =
         let m,cmd =
             try
@@ -216,12 +217,16 @@ let init () =
     let minio, cmd = mapCmd "MinsInit" (MinMsg>>CMsg) cmd Components.Minions.init Storage.minio.Get
     let pet, cmd = mapCmd "PetsInit" (PetMsg>>CMsg) cmd Components.Pets.Leveling.init Storage.pet.Get
     let app =
+        try
         Storage.app.Get()
         |> function
             | Some x -> x
             | None ->
                 eprintfn "init: no stored site"
                 { ActiveTab= Bazaar; ShowTextMenus= false; Theme= ""}
+        with ex ->
+            eprintfn "App Init: %s" ex.Message
+            { ActiveTab= Bazaar; ShowTextMenus= false; Theme= ""}
     if debug then Fable.Core.JS.console.log("starting up app with state", Resolver.Serialize app)
 
     let model =
@@ -337,6 +342,7 @@ let tabSelector ({AppState={Theme=theme;ActiveTab=at};ComponentStates=cs} as x) 
         ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
+    printfn "Starting up Index.view"
     let tabs =
         Component.All
         |> List.map(fun x ->

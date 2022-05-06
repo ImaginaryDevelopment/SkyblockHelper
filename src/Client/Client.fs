@@ -1,5 +1,6 @@
 module Client
 
+printfn "Starting up Client"
 open Elmish
 
 #if DEBUG

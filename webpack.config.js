@@ -71,8 +71,9 @@ module.exports = {
     output: {
         // path: path.join(__dirname, CONFIG.outputDir)
         path: resolve(CONFIG.outputDir),
+        // public path: are we deploying to `/` or `/SkyblockHelper` or elsewhere?
         // publicPath: '/',
-        filename: isProduction ? '[name].[hash].js' : '[name].js'
+        filename: isProduction ? '[name].[fullhash].js' : '[name].js'
     },
     mode: isProduction ? 'production' : 'development',
     devtool: isProduction ? 'source-map' : 'eval-source-map',
@@ -92,7 +93,7 @@ module.exports = {
     //      - HotModuleReplacementPlugin: Enables hot reloading when code changes without refreshing
     plugins: isProduction ?
         commonPlugins.concat([
-            new MiniCssExtractPlugin({ filename: 'style.[name].[hash].css' }),
+            new MiniCssExtractPlugin({ filename: 'style.[name].[fullhash].css' }),
             new CopyWebpackPlugin({ patterns: [{ from: resolve(CONFIG.assetsDir) }]}),
         ])
         : commonPlugins,
